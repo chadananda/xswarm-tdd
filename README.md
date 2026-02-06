@@ -1,298 +1,356 @@
-# TDD/BDD Claude Code Workflow Setup
+# Chad's Claude Code Global Config
 
-A battle-tested multi-agent orchestration system that enforces strict Test-Driven Development inside Claude Code. Instead of hoping Claude writes tests, this system makes it structurally impossible to skip them. The result is a coordinated team of specialized agents that deliver production-ready, minimal, well-tested code through a disciplined Red-Green-Refactor cycle.
+> *"I spent months yelling at an AI about Test-Driven Development. This is what survived."*
 
-**Author:** Chad Jones ([xswarm.ai](https://xswarm.ai))
+Hi. This is my `~/.claude` folder. Yes, the actual one I use every day. I'm sharing it because (a) I think it's genuinely useful, (b) open source is good karma, and (c) maybe if enough people adopt strict TDD with Claude, the robots will learn to write tests first *on their own* and I can finally stop nagging.
 
----
+**What's in here:** A multi-agent orchestration system that makes Claude Code do TDD whether it wants to or not. Plus 20 curated skills, custom hooks, and hard-won opinions about how AI should write code. It's opinionated. It's been through hundreds of iterations. It works.
 
-## Why This Exists
-
-Claude Code is remarkably capable out of the box, but it has a fundamental tension with TDD: it *wants to be helpful*, which means it tends to write implementation and tests together, skip the red phase, or produce more code than necessary. If you've ever watched Claude cheerfully generate a 200-line solution when 40 lines would do, or write tests that suspiciously mirror the implementation rather than driving it, you know the problem.
-
-This system solves that problem architecturally rather than hoping a prompt will stick. By splitting responsibilities across specialized agents with strict protocols, we create a workflow where TDD isn't optional — it's the only path through the pipeline.
-
-The approach draws on three insights that emerged from months of iteration:
-
-1. **Agents with narrow responsibilities follow rules better than one agent doing everything.** A coder agent that only implements from specs doesn't need to resist the temptation to skip tests — it literally can't see the tests. The TDD protocol lives in a shared document that each agent loads independently.
-
-2. **Token efficiency matters enormously.** Every line of agent instruction burns tokens on every invocation. The system went through a major consolidation pass (documented below) that cut per-task overhead by ~70% while preserving behavior. Concise agents are better agents.
-
-3. **The human should make decisions, not corrections.** Rather than letting Claude guess and then fixing the output, the "stuck" protocol forces an immediate pause whenever ambiguity arises. You make one clear decision, and the system executes it. This turns out to be far faster than reviewing and revising autonomous guesses.
+**Author:** Chad Jones / [xswarm.ai](https://xswarm.ai) / [chadananda@gmail.com](mailto:chadananda@gmail.com)
 
 ---
 
-## How It Works
+## The Problem (or: Why Claude Needs a Babysitter)
 
-The system operates as a pipeline of specialized agents coordinated by a slim orchestrator. When you ask Claude Code to build something, here's what actually happens:
+Claude Code is *brilliant*. It's also a golden retriever that desperately wants to please you. Ask it to do TDD and it will cheerfully write the test and the implementation in the same breath, skip the red phase entirely, and beam at you like "look what I made!" It's endearing. It's also not TDD.
 
-### The Orchestrator (`CLAUDE.md`)
+And here's the uncomfortable truth nobody talks about: **without very specific instructions, Claude Code treats you as its free human QA department.** It'll write code confidently, hand it to you, and expect *you* to test it, find the bugs, report back, and iterate. You become the unpaid tester in an infinite feedback loop. The AI writes, you verify. The AI guesses, you correct. The AI moves fast, you clean up.
 
-The orchestrator is deliberately tiny — 8 lines that `@`-include three topic files. It exists to route work: simple requests get handled directly, complex projects get routed to the `/plan` skill, and the resulting tasks get farmed out to team-lead agents running in parallel.
+We're trying to invert that relationship entirely. *Claude* writes the tests. *Claude* verifies its own work. *Claude* catches its own bugs. You make decisions. You approve plans. You don't manually test anything.
 
-The topic files handle conventions, workflow, and agent configuration separately so that changes to one concern don't require re-reading the others. This matters because CLAUDE.md is loaded into every conversation's system prompt — every byte counts.
+Left to its own devices, Claude will also:
+
+- Write 200 lines when 40 would do (it's *generous*)
+- Generate tests that suspiciously mirror the implementation rather than driving it
+- "Forget" about test-first after the third feature because the conversation is now 200k tokens long
+- Guess when confused instead of asking you (it doesn't want to bother you, bless its heart)
+
+You can put "DO TDD" in your system prompt. It works... for a while. Then context pressure wins and Claude reverts to its helpful-but-undisciplined self. Prompt engineering is necessary but not sufficient.
+
+This system solves the problem *architecturally*. You don't ask Claude to do TDD. You make it structurally impossible to skip.
+
+---
+
+## How It Actually Works
+
+### `CLAUDE.md` --- The World's Tiniest Boss
 
 ```
-CLAUDE.md (8 lines, just @ includes)
-├── @CLAUDE_conventions.md  — file organization, git discipline
-├── @CLAUDE_workflow.md     — autonomy rules, task management, workflow steps
-└── @CLAUDE_agents.md       — agent inventory, skills, project type detection
+CLAUDE.md (8 lines total. Seriously.)
+  |
+  +-- @CLAUDE_conventions.md   "where stuff goes"
+  +-- @CLAUDE_workflow.md      "how to work"
+  +-- @CLAUDE_agents.md        "who does what"
 ```
 
-### The Planning System (`/plan` skill)
+The orchestrator's entire job is routing. Simple task? Handle it. Complex project? Call `/plan`. Tasks come back? Farm them out to team-leads running in parallel. That's it. Eight lines. Every byte in CLAUDE.md gets loaded into every conversation, so it's on a strict diet.
 
-Planning uses Claude Code's native Task system with DAG dependencies. This wasn't always the case — an earlier version used a 1200-line planning agent that wrote to JSON files and a separate checklist system. That approach worked but burned enormous token budgets and created stale artifacts.
+### `/plan` --- The Planning Skill That Replaced 1,200 Lines of Pain
 
-The current `/plan` skill is 180 lines. It runs an interactive requirements-gathering phase (where the user approves scope before any code gets written), then decomposes work into right-sized tasks with proper dependency ordering. Pure functions get scheduled first so you get fast test feedback early. No task exceeds 60 minutes.
+The old planning system was a 1,213-line agent that wrote JSON files to a `context/` directory. It worked! It also burned more tokens per invocation than the *entire current system combined*. RIP.
 
-The skill includes an anti-hallucination checklist that forces verification of every dependency and import path before they appear in a task spec. This prevents the maddening scenario where a coder agent tries to import a module that doesn't exist because the planner assumed it did.
+The `/plan` skill is 180 lines. It gathers requirements (with your approval before a single line of code gets written), decomposes work into tasks with proper dependency ordering, and includes an anti-hallucination checklist so the coder agent doesn't try to `import magic_module_that_doesnt_exist`.
 
-### The Team Pipeline
+### The Agent Pipeline --- A Tiny Software Company
 
-Each task gets its own team-lead agent running on the Opus model (worth the cost for orchestration decisions). The team-lead coordinates a four-step pipeline:
+Each task gets its own team. Think of it as the world's smallest and most obedient dev shop:
 
-**Step 1 — Coder** implements from the specification. The coder receives everything it needs: file paths, import statements, code patterns to follow, success criteria. It doesn't research, doesn't make architectural decisions, doesn't choose libraries. It builds exactly what the spec says, following strict TDD: write a failing test, make it pass, refactor.
+```
+    +-------------+     +------------+     +----------+     +-------+
+    |   CODER     | --> |  REVIEWER  | --> |  TESTER  | --> |  DOC  |
+    | "build it"  |     | "fix it &  |     | "prove   |     | "write|
+    | (strict TDD)|     |  shrink it"|     |  it"     |     |  it up|
+    +-------------+     +------------+     +----------+     +-------+
+          |                   |                  |               |
+          v                   v                  v               v
+      Tests MUST          Tests run           Conditional:    Always
+      fail first,         after EVERY         Web/TUI only.   runs.
+      then pass.          single change.      Libraries get   Every.
+      No exceptions.      Code shrinks        a free pass     Single.
+                          until it stops.     (already tested Time.
+                                              twice).
+```
 
-**Step 2 — Reviewer** merges what used to be two separate agents (critic + refactor) into one. It reviews for quality, applies fixes directly, then runs 2-3 minimization passes. Tests run after every change. This consolidation cut agent overhead nearly in half while giving the reviewer more context about the code it's improving.
+**The Coder** gets a complete spec and builds exactly what it says. No research, no architectural decisions, no creative liberties. Just TDD. Red, green, refactor. It's a *very focused* employee.
 
-**Step 3 — Tester** runs conditionally. For web and TUI projects, it does visual verification with Playwright or VHS. For libraries and APIs, it's skipped because the coder and reviewer already verified unit tests twice. This avoids wasting time spinning up Playwright for a pure function library.
+**The Reviewer** used to be two agents (critic + refactor) that played telephone with each other. Now it's one agent that reviews, fixes, and minimizes in a single pass. Tests run after *every* change. If code doesn't shrink, it stops trying. Efficient.
 
-**Step 4 — Doc** always runs. It adds JSDoc to public functions and creates a README.md in the component folder. Documentation lives with the code, not in an external system.
+**The Tester** only shows up for web and TUI projects where visual correctness matters. For a library of pure functions? The coder already tested it (TDD, remember) and the reviewer re-tested it after every change. That's two verification passes. Playwright would just be overkill.
 
-### The Stuck Protocol
+**The Doc Agent** writes JSDoc and a README for every deliverable. Always. No exceptions. Future-you will thank present-you.
 
-Every agent in the system is hardwired to invoke the `stuck` agent the moment anything goes wrong. There are no fallbacks, no "try something else" loops, no silent failures. The stuck agent is the only one authorized to use `AskUserQuestion`, and it presents the problem with clear options for the human to choose from.
+### The Stuck Protocol --- Claude's Panic Button
 
-This sounds rigid, but in practice it's liberating. You never come back to find Claude went down a wrong path for 10 minutes. Problems surface immediately, you make a 5-second decision, and work continues. The error handling is tiered: agents self-fix trivial issues (typos, wrong paths) on one attempt within 30 seconds, but anything requiring a real decision escalates instantly.
+> *Every* agent is hardwired to hit the panic button the moment anything goes wrong.
+
+No fallbacks. No "let me try something else" loops. No silent failures where Claude wanders off into the weeds for 10 minutes. The `stuck` agent is the *only* agent allowed to ask you questions. It presents the problem clearly with options. You make a 5-second decision. Work resumes.
+
+It sounds rigid. In practice, it's the best part of the whole system. Problems surface immediately instead of compounding silently. It's like a GPS that says "I'm lost" instead of confidently driving you into a lake.
+
+This is the other half of inverting the human-AI testing relationship. Without the stuck protocol, Claude guesses when confused and hands you broken output to debug. *You* become the debugger. With the stuck protocol, Claude stops the moment it's unsure and asks you a *specific question with options*. You make a 5-second decision, not a 20-minute debugging session. Your role shifts from "unpaid QA" to "technical decision-maker." Which is what you should have been doing all along.
+
+**Error handling is tiered:**
+
+| Tier | What Happens | Example |
+|------|-------------|---------|
+| **Tier 1: Self-fix** | Agent fixes it. One attempt, 30 seconds max. | Typo, wrong path, missing import |
+| **Tier 2: Stuck** | Instant escalation. Human decides. | Design ambiguity, missing spec, 2+ failed attempts |
 
 ---
 
-## The TDD Protocol
+## The TDD Protocol (The Hill I Will Die On)
 
-The shared TDD protocol lives at `agents/TDD.md` and is loaded by every coding agent via `@TDD.md`. It enforces strict Red-Green-Refactor:
+Lives at `agents/TDD.md`. Loaded by every coding agent via `@TDD.md`. Non-negotiable.
 
-1. **Never write implementation without a failing test.** No exceptions.
-2. **One test at a time.** Write one test, see it fail, make it pass, refactor. Then next test.
-3. **Run tests at every phase.** Never say "this would fail" — execute and show output.
-4. **Minimum code to pass.** Don't anticipate future tests. Triangulate via successive tests.
-5. **When a test fails, fix the code — not the test.** Only change a test if the expectation itself was wrong, and state why before changing.
-6. **Refactoring changes structure, not behavior.** If a test breaks during refactor, undo.
-7. **Report each phase explicitly:** RED (test name + failure), GREEN (what changed + all pass), REFACTOR (what improved + all pass).
+```
+                    +--------+
+                    |  RED   |  Write ONE failing test.
+                    |  ....  |  Watch it fail. (This is the important part.)
+                    +---+----+
+                        |
+                        v
+                    +--------+
+                    | GREEN  |  Write the MINIMUM code to make it pass.
+                    |  ....  |  Not the code you think you'll need later.
+                    +---+----+  The minimum. Seriously.
+                        |
+                        v
+                    +--------+
+                    |REFACTOR|  Clean up. Tests still pass?
+                    |  ....  |  Good. If not, UNDO.
+                    +---+----+
+                        |
+                        +-----> Repeat forever. One test at a time.
+```
 
-The protocol also specifies BDD conventions — `describe` blocks for context, `it` blocks for behavior, test bodies structured as given/when/then, one assertion per test. Tests should describe observable behavior, not implementation details, because implementation-coupled tests are worse than no tests at all.
+**The Seven Commandments:**
 
-### Why Not Just Tell Claude to Do TDD?
+1. **Never write implementation without a failing test.** (Yes, *never*. Not "usually." *Never.*)
+2. **One test at a time.** Not two. Not "a few related ones." One.
+3. **Run tests at every phase.** Don't say "this would fail" --- prove it.
+4. **Minimum code to pass.** Future tests will ask for more. Wait for them.
+5. **Fix the code, not the test.** Only change a test if the expectation was genuinely wrong. State why first.
+6. **Refactoring changes structure, not behavior.** Test breaks during refactor? Undo. No debate.
+7. **Report each phase.** RED: what failed. GREEN: what changed. REFACTOR: what improved.
 
-You can, and it sort of works. The problem is context pressure. In a long conversation, Claude's attention drifts. A system prompt saying "do TDD" competes with 200k tokens of conversation history. By the time you're implementing the fifth feature, the TDD instruction has been pushed to the margins of attention.
+### Why Not Just Say "Do TDD" in the Prompt?
 
-The agent architecture solves this by giving each coding invocation a fresh context with the TDD protocol loaded at high priority. The coder agent's entire identity is "implement from spec using TDD." It doesn't have competing instructions about planning, reviewing, or documenting. This separation of concerns applies to attention as much as it does to code.
+Because by the fifth feature, that instruction is buried under 200k tokens of conversation history and Claude has quietly reverted to its natural "write everything at once" instinct. Prompts drift. Architecture doesn't.
+
+Each agent invocation gets a *fresh* context with TDD loaded at high priority. The coder's entire identity is "implement from spec using TDD." It doesn't have competing instructions about planning or reviewing or being creative. Separation of concerns isn't just for code --- it's for attention.
 
 ---
 
-## File Structure
+## What's In the Box
 
 ```
 ~/.claude/
-├── CLAUDE.md                  # Slim orchestrator (8 lines, @ includes)
-├── CLAUDE_conventions.md      # Project structure, git discipline
-├── CLAUDE_workflow.md         # Autonomy rules, task management
-├── CLAUDE_agents.md           # Agent list, skills, project types
-├── settings.json              # Permissions, hooks, status line
-├── notify.py                  # Desktop notifications
-├── .gitignore                 # Excludes Claude-managed runtime files
-│
-├── agents/
-│   ├── TDD.md                 # Shared TDD protocol (loaded by coding agents)
-│   ├── coder.md               # Implementation specialist (95 lines)
-│   ├── reviewer.md            # Code review + minimization (113 lines)
-│   ├── tester.md              # Unit tests + visual verification (105 lines)
-│   ├── team-lead.md           # Pipeline orchestrator (111 lines)
-│   ├── doc.md                 # Documentation specialist (390 lines)
-│   └── stuck.md               # Human escalation (144 lines)
-│
-├── commands/
-│   ├── commit.md              # Trunk-style development workflow
-│   ├── review.md              # Multi-agent code review
-│   ├── seo.md                 # Markdown SEO analysis
-│   ├── validate-product.md    # Startup idea validation
-│   └── cleanup-tmp.md         # Temporary file cleanup
-│
-├── hooks/
-│   ├── warn-root-files.py     # Prevents agents from creating root-level files
-│   └── cleanup-tmp-scripts.py # Cleans up after task completion
-│
-└── skills/
-    ├── plan/                  # Requirements gathering + task decomposition
-    ├── agent-builder/         # Custom subagent creation guide
-    ├── doc-coauthoring/       # Structured documentation co-authoring (Anthropic)
-    ├── docx/                  # Word document manipulation (Anthropic)
-    ├── frontend-design/       # Production-grade UI with bold aesthetics (Anthropic)
-    ├── mcp-builder/           # MCP server development guide (Anthropic)
-    ├── modern-python/         # uv/ruff/ty Python tooling (Trail of Bits)
-    ├── pdf/                   # PDF manipulation toolkit (Anthropic)
-    ├── pptx/                  # PowerPoint manipulation (Anthropic)
-    ├── project-cleanup/       # File structure organization
-    ├── property-based-testing/ # Hypothesis/QuickCheck patterns (Trail of Bits)
-    ├── security-scan/         # Gitleaks secret detection
-    ├── skill-creator/         # Skill authoring guide (Anthropic)
-    ├── systematic-debugging/  # 4-phase root cause analysis (Superpowers)
-    ├── tui-viewer/            # TUI screenshot verification
-    ├── using-git-worktrees/   # Parallel branch isolation (Superpowers)
-    ├── web-artifacts-builder/ # React/Tailwind/shadcn artifacts (Anthropic)
-    ├── webapp-testing/        # Playwright browser testing (Anthropic)
-    └── xlsx/                  # Spreadsheet manipulation (Anthropic)
+|
+|-- CLAUDE.md                     # 8-line orchestrator (it delegates)
+|-- CLAUDE_conventions.md         # "put files HERE, not THERE"
+|-- CLAUDE_workflow.md            # "work like THIS"
+|-- CLAUDE_agents.md              # "these are your coworkers"
+|-- settings.json                 # Permissions, hooks, status line
+|-- notify.py                     # Dings your desktop when agents finish
+|-- .gitignore                    # Keeps Claude's runtime mess out of git
+|
+|-- agents/                       # The team
+|   |-- TDD.md                   # The shared religion (39 lines)
+|   |-- coder.md                 # Builder (95 lines, down from 513)
+|   |-- reviewer.md              # Critic + minimizer (113 lines)
+|   |-- tester.md                # Verifier, shows up when needed (105 lines)
+|   |-- team-lead.md             # Manager, runs on Opus (111 lines)
+|   |-- doc.md                   # Documentarian (390 lines, it's thorough)
+|   +-- stuck.md                 # The panic button (144 lines)
+|
+|-- commands/                     # Slash commands (/commit, /review, etc.)
+|   |-- commit.md                # Trunk-style git workflow
+|   |-- review.md                # Multi-agent code review
+|   |-- seo.md                   # Markdown SEO analysis
+|   |-- validate-product.md      # Startup idea validation
+|   +-- cleanup-tmp.md           # Janitor duty
+|
+|-- hooks/                        # Automated guardrails
+|   |-- warn-root-files.py       # "HEY! Don't put that in root!"
+|   +-- cleanup-tmp-scripts.py   # Tidies up after tasks finish
+|
++-- skills/                       # 20 on-demand capabilities
+    |
+    |-- [Development Workflow]
+    |   |-- plan/                 # Requirements + task decomposition
+    |   |-- systematic-debugging/ # 4-phase root cause analysis (Superpowers)
+    |   |-- using-git-worktrees/  # Parallel branch isolation (Superpowers)
+    |   |-- property-based-testing/ # Hypothesis/QuickCheck (Trail of Bits)
+    |   +-- security-scan/        # Gitleaks secret detection
+    |
+    |-- [Language & Framework]
+    |   |-- modern-python/        # uv/ruff/ty tooling (Trail of Bits)
+    |   |-- frontend-design/      # Bold UI, no "AI slop" (Anthropic)
+    |   +-- web-artifacts-builder/ # React/Tailwind/shadcn (Anthropic)
+    |
+    |-- [Documents & Formats]
+    |   |-- doc-coauthoring/      # Structured doc writing (Anthropic)
+    |   |-- docx/                 # Word docs (Anthropic)
+    |   |-- pdf/                  # PDFs (Anthropic)
+    |   |-- pptx/                 # PowerPoint (Anthropic)
+    |   +-- xlsx/                 # Spreadsheets (Anthropic)
+    |
+    +-- [Meta & Tooling]
+        |-- agent-builder/        # Build your own agents
+        |-- skill-creator/        # Build your own skills (Anthropic)
+        |-- mcp-builder/          # MCP server dev guide (Anthropic)
+        |-- project-cleanup/      # Organize messy projects
+        |-- tui-viewer/           # TUI screenshot verification
+        +-- webapp-testing/       # Playwright browser testing (Anthropic)
 ```
 
-The `.gitignore` excludes all Claude-managed runtime directories (cache, debug, todos, session state, telemetry, history, etc.) so the repository contains only your authored configuration.
+### Skills: They're Lazy (In a Good Way)
 
-### Skills: Sources and Activation Scoping
+Skills only wake up when they're needed. Claude scans each skill's description (~100 tokens) and ignores the rest until it detects relevance. Twenty skills cost almost nothing at idle. The trick is proper scoping in each skill's `description` field:
 
-Skills are loaded on-demand — Claude scans each skill's description (~100 tokens) and only loads the full content when it detects relevance to the current task. This means 20 skills cost almost nothing at idle. The key is proper scoping in each skill's `description` field:
+| Category | Skills | When They Wake Up |
+|----------|--------|-------------------|
+| **Coding workflow** | systematic-debugging, git-worktrees, property-based-testing, security-scan | Bugs, branch work, test writing, pre-commit |
+| **Language-specific** | modern-python, frontend-design, web-artifacts-builder | Only their language/framework |
+| **Document formats** | docx, pdf, pptx, xlsx, doc-coauthoring | Only when touching those formats |
+| **Meta/tooling** | plan, skill-creator, agent-builder, etc. | Rare, specific triggers |
 
-**Coding workflow skills** activate only during development tasks:
-- **systematic-debugging** — Triggers on bugs, test failures, unexpected behavior. From [Superpowers](https://github.com/obra/superpowers) (46K+ stars, MIT).
-- **using-git-worktrees** — Triggers when starting feature work needing branch isolation. From [Superpowers](https://github.com/obra/superpowers).
-- **property-based-testing** — Triggers when writing tests for serialization, parsing, or validation patterns. From [Trail of Bits](https://github.com/trailofbits/skills) (CC BY-SA 4.0).
-- **security-scan** — Mandatory before any coder agent completes. Custom.
-
-**Language-specific skills** activate only for their language:
-- **modern-python** — Triggers only for Python projects (uv, ruff, ty tooling). From [Trail of Bits](https://github.com/trailofbits/skills).
-- **frontend-design** — Triggers for React/Tailwind web UI work. From [Anthropic](https://github.com/anthropics/skills).
-- **web-artifacts-builder** — Triggers for complex React/TypeScript artifacts. From [Anthropic](https://github.com/anthropics/skills).
-
-**Document/format skills** activate only when working with that format:
-- **docx**, **pdf**, **pptx**, **xlsx** — From [Anthropic](https://github.com/anthropics/skills).
-- **doc-coauthoring** — Triggers for structured documentation writing. From [Anthropic](https://github.com/anthropics/skills).
-
-**Meta skills** (rarely triggered):
-- **plan**, **skill-creator**, **agent-builder**, **project-cleanup**, **tui-viewer**, **mcp-builder**, **webapp-testing** — Each scoped to its specific use case.
+**Skill sources and licenses:**
+- [Anthropic](https://github.com/anthropics/skills) --- the official collection
+- [Superpowers](https://github.com/obra/superpowers) (MIT, 46K+ stars) --- battle-tested dev workflows
+- [Trail of Bits](https://github.com/trailofbits/skills) (CC BY-SA 4.0) --- security-focused excellence
 
 ---
 
-## Installation
+## Getting Started
 
-Clone this repository into your home directory as `~/.claude`:
+### The Quick Way
 
 ```bash
-# Back up existing config if you have one
+# Back up your existing config (if any)
 [ -d ~/.claude ] && mv ~/.claude ~/.claude.backup
 
-# Clone
+# Clone this repo as your global config
 git clone https://github.com/chadananda/claude-code-tdd.git ~/.claude
 ```
 
-Or cherry-pick the pieces you want. The system is modular — you can adopt just the TDD protocol, just the agent pipeline, or the full orchestration system.
+### The Picky Way
+
+Cherry-pick what you want. The system is modular:
+- Just want TDD? Grab `agents/TDD.md` and reference it from your agents.
+- Just want the agent pipeline? Take the `agents/` folder.
+- Just want skills? Copy individual skill folders into your `~/.claude/skills/`.
+- Want it all? Clone the whole thing.
 
 ### Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed and authenticated
-- `gitleaks` for the security scan step (`brew install gitleaks` on macOS)
-- For visual testing: Playwright MCP server configured, or VHS for TUI projects
+- **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** CLI, installed and authenticated
+- **`gitleaks`** for secret scanning (`brew install gitleaks` on macOS)
+- *Optional:* Playwright MCP for web testing, VHS for TUI testing
 
-### Configuration
+### Configuration Notes
 
-The `settings.json` has three layers:
+**`settings.json`** has three concerns:
 
-**Permissions** — A single `"Bash"` entry permits all shell commands. Earlier iterations had 24 specific `Bash(command:*)` entries that were all redundant. The deny list prevents writing to system temp directories (agents should use project-local `./tmp/` instead).
-
-**Hooks** — Three hook types keep agents on track:
-- `PreToolUse` on Write/Edit: blocks writes to `/tmp`, warns when agents try to create files in the project root
-- `PostToolUse` on TaskUpdate: cleans up temporary scripts after task completion
-- `Notification`: desktop notification when agents complete (useful when you're doing other work while agents run)
-
-**Status Line** — Shows current directory, model, version, and git branch/status at a glance.
+- **Permissions:** One `"Bash"` entry allows all shell commands. (An earlier version had 24 specific entries that were all redundant. Ask me how I know.)
+- **Hooks:** Block writes to `/tmp` (use `./tmp/` instead), warn on root-level file creation, desktop notification when agents finish, cleanup after task completion.
+- **Status line:** Directory, model, version, git branch at a glance.
 
 ---
 
-## Design Decisions and Trade-offs
+## Design Decisions (a.k.a. Mistakes I Made So You Don't Have To)
 
-### Why Merge Critic + Refactor into Reviewer?
+<details>
+<summary><b>Why merge Critic + Refactor into one Reviewer?</b></summary>
 
-The original pipeline ran six sequential agent calls per task: coder, tester, critic, coder (again for refactoring), refactor, doc. The critic would produce a review document, then the coder would be re-invoked to apply the suggestions, then the refactor agent would minimize. This burned tokens and time, and the coder's second pass often missed context from the review.
+The original pipeline was: coder -> tester -> critic -> coder (again!) -> refactor -> doc. Six steps. The critic would write a review, then the coder would be re-invoked to apply suggestions (often missing context), then the refactorer would minimize (without the review context). It was like a game of telephone but with tokens.
 
-The merged reviewer agent does all three jobs — review, fix, minimize — in one invocation with full context. It reads the code, identifies issues, applies fixes directly (running tests after each change), then runs minimization passes. Fewer context switches, fewer tokens, better results.
+The merged Reviewer does all three jobs in one invocation with full context. Review, fix, minimize. Tests after every change. Half the token cost, better results. Sometimes less really is more.
+</details>
 
-### Why Is the Tester Conditional?
+<details>
+<summary><b>Why is the Tester conditional?</b></summary>
 
-For a library of pure functions, spinning up Playwright to "visually verify" is nonsensical. The coder already ran tests (TDD requires it), and the reviewer re-ran them after every change. That's two verification passes before the tester even gets invoked.
+For a library of pure functions, spinning up Playwright to "visually verify" is like hiring a food photographer to check if your toast is done. The coder already tested it (TDD). The reviewer re-tested after every change. That's two passes. The tester only adds value when *visual correctness* is the feature --- web projects and TUIs.
+</details>
 
-The tester adds value for web projects (where visual correctness matters and can't be captured in unit tests) and TUI projects (where terminal rendering is the feature). For everything else, it's skipped.
+<details>
+<summary><b>Why Opus for the Team-Lead but Sonnet for everyone else?</b></summary>
 
-### Why Opus for the Team-Lead?
+The team-lead makes *judgment calls*: Is this a web project? Is the coder's output complete enough? Should we invoke the tester? Stronger reasoning pays off here. The coding agents are executing detailed specs mechanically --- they don't need to reason about *what* to do, just do it well. Sonnet is perfect for that.
+</details>
 
-The team-lead makes routing decisions: is this a web project? Did the coder's output look complete enough for review? Should the tester be invoked? These judgment calls benefit from stronger reasoning. The coding agents run on Sonnet because they're executing mechanical work from detailed specs — they don't need to reason about what to do, just do it well.
+<details>
+<summary><b>Why a shared TDD.md file instead of inline rules?</b></summary>
 
-### Why a Shared TDD Protocol File?
+Earlier versions embedded TDD rules in each agent. Maintenance nightmare --- update one, forget the others. Plus the same 40 lines loaded three times in the pipeline. Now it's one file, `@TDD.md`, loaded by agents that need it, ignored by the rest. DRY applies to agent configuration too.
+</details>
 
-Earlier iterations embedded TDD rules directly in each agent's instructions. This created maintenance headaches (update one, forget the others) and token waste (the same 40 lines loaded three times in the pipeline). The shared `TDD.md` file is loaded via `@TDD.md` by agents that need it, and ignored by agents that don't (team-lead, doc, stuck).
+<details>
+<summary><b>Why Claude's native Task system instead of JSON files?</b></summary>
 
-### Why Native Tasks Instead of JSON Files?
-
-Claude Code's built-in Task system provides DAG dependencies, status tracking, and blocking semantics. The old approach wrote execution plans to `.claude/context/execution-plan.json` and checklists to `.claude/context/task-checklist.md` — custom infrastructure that duplicated what Tasks already does. The migration deleted ~1600 lines of planning machinery and replaced it with 180 lines in the `/plan` skill.
-
----
-
-## The Consolidation Story
-
-This system started as ~4100 lines of agent and configuration content. Through a systematic audit, it was reduced to ~1300 lines — a 70% reduction. Here's what was cut and why:
-
-| Before | After | What Changed |
-|--------|-------|-------------|
-| `agents/plan.md` (1213 lines) | Deleted | Replaced by `/plan` skill (180 lines) using native Tasks |
-| `agents/critic.md` (299 lines) | Deleted | Merged into `reviewer.md` (113 lines) |
-| `agents/refactor.md` (344 lines) | Deleted | Merged into `reviewer.md` |
-| `agents/coder.md` (513 lines) | 95 lines | Cut verbose examples and inline security docs |
-| `agents/tester.md` (456 lines) | 105 lines | Added unit test mode, condensed visual testing |
-| `agents/team-lead.md` (356 lines) | 111 lines | 4-step pipeline, removed redundant coder pass |
-| `CLAUDE.md` (122 lines) | 8 + 83 lines | Split into topic files with @ includes |
-| `settings.json` (93 lines) | 70 lines | Removed 24 redundant permission entries |
-| `context/` directory | Deleted | Stale artifacts from old planning system |
-| Gemini API scripts | Deleted | Opus 4.6 replaced Gemini for planning |
-
-The lesson: agent files should be as short as possible because they're loaded into context on every invocation. A 500-line agent file with extensive examples burns 2000+ tokens before a single line of actual work happens. The examples were useful during development but unnecessary once the system was stable.
+The Task system already provides DAG dependencies, status tracking, and blocking semantics. The old approach reimplemented all of that with JSON files and custom checklists. We deleted ~1,600 lines of planning machinery and replaced it with 180. When the platform already does the thing, let the platform do the thing.
+</details>
 
 ---
 
-## Adapting This for Your Workflow
+## The Great Consolidation (How 4,100 Lines Became 1,300)
 
-### If You Don't Want Strict TDD
+This system grew organically and then went on a diet. Here's the before/after:
 
-Edit `agents/TDD.md` to relax the rules. You might keep the test-first principle but drop the one-test-at-a-time constraint for faster iteration. The rest of the pipeline (review, minimize, document) works independently of TDD.
+| What | Before | After | What Happened |
+|------|--------|-------|---------------|
+| Planning agent | 1,213 lines | 0 | Replaced by 180-line `/plan` skill. RIP. |
+| Critic agent | 299 lines | 0 | Merged into Reviewer. Two jobs, one agent. |
+| Refactor agent | 344 lines | 0 | Also merged into Reviewer. Three jobs, one agent. |
+| Coder agent | 513 lines | 95 lines | Cut the novel-length examples. |
+| Tester agent | 456 lines | 105 lines | Added unit test mode, condensed visual testing. |
+| Team-lead | 356 lines | 111 lines | 4-step pipeline, dropped the redundant second coder pass. |
+| CLAUDE.md | 122 lines | 8 + 83 lines | Split into topic files. The orchestrator *orchestrates*. |
+| settings.json | 93 lines | 70 lines | Turns out `"Bash"` covers all bash commands. Who knew. |
+| Context directory | ~400 lines | 0 | Stale artifacts from the old planning system. Goodbye. |
+| Gemini API scripts | ~250 lines | 0 | Opus 4.6 replaced Gemini for planning. Progress. |
 
-### If You Want Different Agent Models
-
-Model selection is in each agent's frontmatter. Change `model: sonnet` to `model: opus` for agents where you want stronger reasoning, or `model: haiku` for agents where speed matters more than quality (doc is a good candidate).
-
-### If You Want to Add Agents
-
-Create a new `.md` file in `agents/` with YAML frontmatter specifying name, description, tools, and model. Reference it from the team-lead pipeline if it should run on every task, or invoke it ad-hoc.
-
-### If You Want Project-Specific Behavior
-
-Create a `.claude/` directory in your project with a local `CLAUDE.md`. Project-level instructions override global ones. This is useful for specifying project-specific test commands, directory structures, or coding conventions.
+**The lesson:** Agent files get loaded into context on every invocation. A 500-line agent with extensive examples burns 2,000+ tokens before doing any actual work. Those examples were useful while developing the system. Once it was stable, they were just expensive nostalgia.
 
 ---
 
-## Lessons Learned
+## Making It Your Own
 
-**Agents that can't do something won't try to.** The coder can't make architectural decisions because it doesn't have the context or instructions for it. Constraints aren't limitations — they're what make the system reliable.
+**Don't like strict TDD?** Edit `agents/TDD.md`. Keep test-first but drop one-at-a-time. Or go wild and delete it entirely (I'll try not to cry).
 
-**Token budgets are architecture decisions.** A 1200-line planning agent consumed more tokens per invocation than the entire current system combined. Conciseness isn't just aesthetic; it directly affects how many tasks you can run before hitting context limits.
+**Want different models?** Each agent has a `model:` field in its frontmatter. Swap `sonnet` for `opus` where you want brains, or `haiku` where you want speed. Doc is a good haiku candidate.
 
-**The stuck protocol is the most important agent.** Everything else can be tweaked, but the guarantee that problems surface immediately rather than compounding silently is what makes the whole system trustworthy.
+**Want to add agents?** Create a `.md` file in `agents/` with YAML frontmatter (name, description, tools, model). Reference it from team-lead's pipeline or invoke it ad-hoc.
 
-**Parallel execution is free performance.** Once tasks are properly decomposed with dependency mapping, running them in parallel doesn't cost more tokens — it just finishes sooner. The planning overhead pays for itself on any project with 3+ tasks.
+**Want project-specific behavior?** Create a `.claude/CLAUDE.md` in your project. Project-level instructions override global ones. Great for project-specific test commands, directory structures, or "we use tabs here and I will fight you about it."
 
-**Documentation should be mandatory, not optional.** Making doc the final pipeline step means every deliverable arrives documented. This compounds over time as the codebase builds up a knowledge base that both humans and AI agents can reference.
+---
+
+## Things I Learned the Hard Way
+
+**Constraints make agents reliable, not limited.** The coder *can't* make architectural decisions because it doesn't have the context or instructions. This isn't a bug. This is the feature.
+
+**Token budgets are architecture decisions.** That 1,200-line planning agent consumed more tokens per invocation than the entire current system combined. Conciseness isn't aesthetics --- it's the difference between running 10 tasks and running 3.
+
+**The stuck protocol is the most important agent.** Everything else is tunable. The guarantee that problems surface immediately instead of compounding silently? That's what makes you trust the system enough to go make coffee while it works.
+
+**Parallel execution is free performance.** Properly decomposed tasks with dependency mapping run in parallel at the same token cost --- they just finish sooner. Planning overhead pays for itself on any project with 3+ tasks.
+
+**Documentation should be mandatory.** Making doc the final pipeline step means every deliverable arrives documented. Six months later, both you *and* Claude can understand what was built and why.
 
 ---
 
 ## License
 
-MIT
+MIT. Take what you want. Credit appreciated but not required. If it helps you build something cool, that's payment enough.
 
-## Author
+---
 
-**Chad Jones** — [xswarm.ai](https://xswarm.ai) — [chadananda@gmail.com](mailto:chadananda@gmail.com)
-
-Built with Claude Code, refined through hundreds of iterations, and used daily for real projects. Contributions and ideas welcome.
+<p align="center">
+<i>Built with Claude Code. Refined through hundreds of iterations. Shared in the spirit of "we're all figuring this out together."</i>
+<br><br>
+<b>Chad Jones</b> -- <a href="https://xswarm.ai">xswarm.ai</a>
+<br>
+Contributions, ideas, and strongly-worded opinions about testing welcome.
+</p>
