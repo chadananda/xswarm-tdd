@@ -1,10 +1,14 @@
-# Chad's Claude Code Global Config
+# xswarm-tdd-claude
 
 > *"I spent months yelling at an AI about Test-Driven Development. This is what survived."*
 
-Hi. This is my `~/.claude` folder. Yes, the actual one I use every day. I'm sharing it because (a) I think it's genuinely useful, (b) open source is good karma, and (c) maybe if enough people adopt strict TDD with Claude, the robots will learn to write tests first *on their own* and I can finally stop nagging.
+Hi. This is my actual `~/.claude` folder --- the one I use every day for real work. It's two things at once:
 
-**What's in here:** A multi-agent orchestration system that makes Claude Code do TDD whether it wants to or not. Plus 20 curated skills, custom hooks, and hard-won opinions about how AI should write code. It's opinionated. It's been through hundreds of iterations. It works.
+1. **My global Claude Code config** --- a multi-agent orchestration system that makes Claude do TDD whether it wants to or not. Twenty curated skills, custom hooks, and hard-won opinions about how AI should write code. It's opinionated. It's been through hundreds of iterations. It works.
+
+2. **The experimental playground for [xswarm](https://xswarm.ai) coding agents** --- I'm spending 2026 building autonomous agent swarms for software development, and this is where those ideas get prototyped and battle-tested before they graduate into the xswarm framework. The team-lead pipeline, the stuck protocol, the TDD enforcement architecture --- these all started here as experiments and evolved into patterns I trust enough to ship.
+
+I'm sharing it because open source is good karma, and because the best way to build better AI coding agents is to do it in the open where smart people can tell you what you're doing wrong.
 
 **Author:** Chad Jones / [xswarm.ai](https://xswarm.ai) / [chadananda@gmail.com](mailto:chadananda@gmail.com)
 
@@ -231,7 +235,7 @@ Skills only wake up when they're needed. Claude scans each skill's description (
 [ -d ~/.claude ] && mv ~/.claude ~/.claude.backup
 
 # Clone this repo as your global config
-git clone https://github.com/chadananda/claude-code-tdd.git ~/.claude
+git clone https://github.com/chadananda/xswarm-tdd-claude.git ~/.claude
 ```
 
 ### The Picky Way
@@ -312,6 +316,21 @@ This system grew organically and then went on a diet. Here's the before/after:
 | Gemini API scripts | ~250 lines | 0 | Opus 4.6 replaced Gemini for planning. Progress. |
 
 **The lesson:** Agent files get loaded into context on every invocation. A 500-line agent with extensive examples burns 2,000+ tokens before doing any actual work. Those examples were useful while developing the system. Once it was stable, they were just expensive nostalgia.
+
+---
+
+## The xswarm Connection
+
+This repo is the petri dish for [xswarm](https://xswarm.ai) --- an autonomous agent swarm framework I'm building in 2026. The idea is simple but ambitious: instead of one AI assistant that does everything, you orchestrate *teams* of specialized agents that hold each other accountable.
+
+Everything in this repo started as an experiment:
+
+- **The team-lead pipeline** was "what if one agent managed others instead of doing all the work?" Turns out managers work better when they can't write code --- they focus on routing and quality instead of getting lost in implementation details.
+- **The stuck protocol** was "what if agents couldn't guess?" This single constraint eliminated more wasted time than any other change. It's now a core xswarm pattern.
+- **The TDD enforcement** was "what if test-first was structural, not aspirational?" Making it the only path through the pipeline --- not a suggestion in a prompt --- changed everything.
+- **The consolidation from 4,100 to 1,300 lines** taught us that token efficiency is an architecture concern, not an optimization. Agent instructions should be as small as possible because they're loaded on every invocation.
+
+If you're interested in where this is heading, watch the [xswarm.ai](https://xswarm.ai) space. The patterns here are graduating into something more general --- multi-agent orchestration for any software development task, not just Claude Code. Same philosophy: small agents, strict protocols, humans make decisions, robots do work.
 
 ---
 
