@@ -57,14 +57,14 @@ Run basic verification:
 
 ### Step 4: Security Scan
 
-**Before reporting completion, scan for secrets:**
+**Before reporting completion, scan for secrets.** AI agents are especially prone to hardcoding credentials encountered during implementation.
 ```bash
-gitleaks detect --no-git --source . --verbose
+npx xswarm-ai-sanitize detect .
 ```
 
-If secrets found: invoke @stuck immediately with file:line details. Never proceed with secrets present.
+If secrets found (exit 1): invoke @stuck immediately with file:line details. Never proceed with secrets present.
 
-If clean: ensure pre-commit hook is installed via `/security-scan` skill.
+If clean (exit 0): proceed to report completion.
 
 ### Step 5: Report Completion
 

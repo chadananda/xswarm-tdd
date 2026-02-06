@@ -189,7 +189,7 @@ Each agent invocation gets a *fresh* context with TDD loaded at high priority. T
     |   |-- using-git-worktrees/  # Parallel branch isolation (Superpowers)
     |   |-- property-based-testing/ # Hypothesis/QuickCheck (Trail of Bits)
     |   |-- notify-assistant/     # Ping OpenClaw when features complete or stuck
-    |   +-- security-scan/        # Gitleaks secret detection
+    |   +-- security-scan/        # xswarm-ai-sanitize secret detection
     |
     |-- [Language & Framework]
     |   |-- modern-python/        # uv/ruff/ty tooling (Trail of Bits)
@@ -253,7 +253,7 @@ Cherry-pick what you want. The system is modular:
 ### Requirements
 
 - **[Claude Code](https://docs.anthropic.com/en/docs/claude-code)** CLI, installed and authenticated
-- **`gitleaks`** for secret scanning (`brew install gitleaks` on macOS)
+- **No other dependencies** — secret scanning uses [xswarm-ai-sanitize](https://github.com/chadananda/xswarm-ai-sanitize) via npx (zero install)
 - *Optional:* Playwright MCP for web testing, VHS for TUI testing
 
 ### Configuration Notes
