@@ -66,5 +66,8 @@
     "type": "command",
     "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir' | sed 's|.*/||'); model=$(echo \"$input\" | jq -r '.model.display_name'); version=$(echo \"$input\" | jq -r '.version'); cd \"$(echo \"$input\" | jq -r '.workspace.current_dir')\"; if git rev-parse --git-dir > /dev/null 2>&1; then branch=$(git branch --show-current 2>/dev/null || echo 'detached'); status=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' '); if [ \"$status\" != \"0\" ]; then git_status=\"*\"; else git_status=\"\"; fi; git_info=\"$branch$git_status\"; else git_info=\"no-git\"; fi; printf \"📁%s ║ 🤖%s ║ 🏷️%s ║ 🌿%s\" \"$cwd\" \"$model\" \"$version\" \"$git_info\""
   },
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": true,
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
 }

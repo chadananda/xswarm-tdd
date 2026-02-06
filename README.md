@@ -85,6 +85,27 @@ Each task gets its own team. Think of it as the world's smallest and most obedie
 
 **The Doc Agent** writes JSDoc and a README for every deliverable. Always. No exceptions. Future-you will thank present-you.
 
+### Agent Teams --- Parallel Feature Work (New in Opus 4.6)
+
+When `/plan` decomposes work into multiple independent features, the system can spin up an **agent team** — multiple full Claude instances working in parallel, each owning a feature and running its own TDD pipeline simultaneously.
+
+```
+                    +-- Teammate A (Feature 1: auth module) --+
+                    |   coder → reviewer → tester → doc       |
+  Team Lead --------+-- Teammate B (Feature 2: API layer) ----+-- Synthesize
+  (orchestrator)    |   coder → reviewer → tester → doc       |
+                    +-- Teammate C (Feature 3: CLI tool) ------+
+                        coder → reviewer → tester → doc
+```
+
+Each teammate is a full Claude Code session with its own context window. They share a task list, message each other directly, and self-coordinate. The lead orchestrates but doesn't implement (delegate mode keeps it honest).
+
+**When to use teams vs. subagents:**
+- **Agent teams**: multiple independent features, parallel code review, competing debug hypotheses
+- **Subagents**: sequential pipeline (coder must finish before reviewer), single focused tasks
+
+Agent teams are experimental (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` in settings.json) and cost more tokens since each teammate is a separate instance. But for a project with 5 independent features, parallel execution can be 3-4x faster than sequential.
+
 ### The Stuck Protocol --- Claude's Panic Button
 
 > *Every* agent is hardwired to hit the panic button the moment anything goes wrong.
