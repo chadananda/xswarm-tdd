@@ -13,24 +13,35 @@ It's also the experimental playground for [xswarm](https://xswarm.ai) coding age
 
 ---
 
-## Harness Engineering
+## Principles-First Harness Engineering
 
-Anthropic describes two disciplines for getting the most out of AI agents:
+The central idea: **every instruction should carry its own rationale.** Not "do this" but "do this — *because*." This isn't a formatting preference — it's the difference between compliance and judgment.
 
-- **[Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)** — curating the optimal set of tokens during inference. System prompts, tools, message history, external data — everything that lands in the context window.
-- **[Effective Harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)** — structuring the scaffolding *around* agents for long-running work: decomposition into phases, environmental setup, progress tracking across context windows, and incremental execution.
+Bare rules get pattern-matched: "I see a rule, I follow it." When context pressure mounts (and it always does), bare rules are the first things the model drops. Principled rules get *reasoned about*: "I understand what this protects, so I apply it correctly even in edge cases the author didn't anticipate." The reason transforms mechanical compliance into informed judgment — the model defends the rule because it understands what's at stake.
 
-This repo is harness engineering applied to Claude Code's `~/.claude` configuration. The harness is the CLAUDE.md instruction files, agent definitions, hooks, and skills that shape how Claude works before it writes a single line of code.
+```
+Bare:        Run tests after EVERY change.
+Principled:  Run tests after EVERY change — catches regressions before they stack.
+```
 
-**The core challenge:** Every byte in CLAUDE.md gets loaded into every conversation. Every agent file gets loaded on every spawn. Token overhead is a tax on every operation. The harness must be *maximally compact without losing effectiveness* — what Anthropic calls finding the right "altitude" for instructions: specific enough to guide, flexible enough to generalize.
+This approach is informed by Anthropic's work on [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), which recommends the "right altitude" for instructions: *specific enough to guide behavior effectively, yet flexible enough to avoid brittle hardcoding.* A terse reason achieves both — the rule constrains, the reason generalizes.
 
-### Three Principles
+### Harness Engineering
 
-**1. Don't re-teach what the model knows.** Claude knows JSDoc syntax, README structure, team coordination, and plugin descriptions. The harness states *rules and constraints* — the things Claude would get wrong without guidance. Templates and examples for things Claude already knows are pure token waste.
+Anthropic describes two related disciplines:
 
-**2. Terse rules with principled reasons.** Every rule follows the pattern `Rule — reason.` The reason isn't decoration — it's what prevents Claude from treating rules as arbitrary constraints and bending them when they seem inconvenient. Anthropic's [context engineering guide](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) recommends presenting ideas at "the right altitude — specific enough to guide behavior effectively, yet flexible enough to avoid brittle hardcoding." A terse reason achieves both: the rule constrains behavior, the reason enables correct generalization in edge cases.
+- **[Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)** — curating the optimal set of tokens during inference. System prompts, tools, message history, external data — everything in the context window.
+- **[Effective Harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)** — structuring scaffolding *around* agents for long-running work: decomposition into phases, environmental setup, progress tracking across context windows.
 
-**3. Architecture over prompting.** Telling Claude "DO TDD" works until context pressure wins. This system makes TDD *structural* — each agent invocation gets a fresh context with TDD.md loaded at high priority. The coder's entire identity is "implement from spec using TDD." Separation of concerns isn't just for code — it's for attention.
+This repo applies both to Claude Code's `~/.claude` configuration. The harness is the CLAUDE.md files, agent definitions, hooks, and skills that shape how Claude works before it writes a single line of code. Every byte gets loaded into every conversation, so the harness must be maximally compact — but *never at the cost of dropping rationale*. Principles are load-bearing; filler is not.
+
+### Design Principles
+
+**1. Principled instructions, terse delivery.** Every rule carries its reason in `Rule — reason.` format. Drop articles, filler, and verbose sentence structure. Never drop the "why." One sentence of rationale costs ~10 tokens and dramatically improves adherence in long sessions where bare directives erode.
+
+**2. Don't re-teach what the model knows.** Claude knows JSDoc syntax, README structure, team coordination. The harness states *rules and constraints* — things Claude would get wrong without guidance. Templates for things the model already knows are pure token waste.
+
+**3. Architecture over prompting.** Telling Claude "DO TDD" works until context pressure wins. This system makes TDD *structural* — each agent gets a fresh context with TDD.md at high priority. Separation of concerns isn't just for code — it's for attention.
 
 ### Token Budget
 
@@ -197,16 +208,16 @@ Skills only wake up when relevant. Claude scans each skill's description (~100 t
 
 ## The Compression Story
 
-This harness grew organically, then went on a diet. Three rounds of optimization:
+Principles-first doesn't mean verbose. The harness grew organically to 4,100 lines, then was compressed to 296 — a 77% reduction — while *adding* principled rationale to every rule that lacked one. The insight: most of those 4,100 lines were templates, examples, and re-explanations of things Claude already knows. The principles themselves are cheap. Filler is expensive.
 
 ### Round 1: Architectural (4,100 → 1,266 lines)
 Merged critic + refactor into one reviewer. Replaced 1,213-line planning agent with 180-line `/plan` skill. Deleted stale `context/` directory. Dropped redundant second coder pass.
 
 ### Round 2: Structural (1,266 → 640 lines)
-Removed content that duplicates system context (plugin lists, skill references, team mechanics). Removed JSDoc/README templates from doc.md (390 → 56 lines). Merged CLAUDE_conventions.md into CLAUDE.md. Stripped redundant MEMORY.md entries.
+Removed content duplicating system context (plugin lists, skill references, team mechanics). Removed JSDoc/README templates from doc.md (390 → 56 lines) — Claude knows JSDoc. Merged CLAUDE_conventions.md into CLAUDE.md.
 
 ### Round 3: Terse + Principled (640 → 296 lines)
-Dropped articles, filler words, verbose sentence structure. Compressed to `Rule — reason.` format throughout. Every rule kept its rationale — just in fewer tokens.
+Dropped articles, filler words, verbose sentence structure. Adopted `Rule — reason.` format throughout. Every rule *gained* a rationale clause while the total line count *dropped* — because the filler removed was worth far more than the reasons added.
 
 | What | Round 1 | Round 2 | Round 3 | Reduction |
 |------|---------|---------|---------|-----------|
@@ -214,7 +225,7 @@ Dropped articles, filler words, verbose sentence structure. Compressed to `Rule 
 | Agent pool (all 7 files) | 1,066 | 464 | 251 | 76% |
 | **Total harness** | **1,266** | **640** | **296** | **77%** |
 
-**The lesson from Anthropic's [harness paper](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents):** agent instructions are loaded on every invocation. A 500-line agent burns 2,000+ tokens before doing any work. Conciseness isn't aesthetics — it's the difference between running 10 tasks and running 3 within a context window.
+**The takeaway:** Agent instructions load on every invocation. A 500-line agent burns 2,000+ tokens before doing any work. But the answer isn't stripping reasons to save tokens — it's stripping everything *except* rules and reasons. Principles are load-bearing structure. Templates, examples, and re-explanations of model knowledge are scaffolding you can remove once the building stands.
 
 ---
 
@@ -260,21 +271,6 @@ For pure functions, the coder already tested via TDD and the reviewer re-tested 
 <details>
 <summary><b>Why Opus for Team-Lead, Sonnet for everyone else?</b></summary>
 Team-lead makes judgment calls: Is this a web project? Is output complete? Invoke tester? Stronger reasoning pays off. Coding agents execute detailed specs mechanically — Sonnet is perfect for that.
-</details>
-
-<details>
-<summary><b>Why terse rules with reasons instead of bare rules?</b></summary>
-
-Every rule follows: `Rule — reason.` This isn't style — it's how models process instructions.
-
-**Bare rule:** `Run tests after EVERY change`
-**Principled:** `Run tests after EVERY change — catches regressions before they stack.`
-
-Bare rules get pattern-matched: "I see a rule, I follow it." Principled rules get reasoned about: "I understand what this protects, so I apply it correctly in edge cases the author didn't anticipate." The reason transforms compliance into judgment.
-
-This costs ~30% more tokens in instruction files. The improvement in rule adherence — especially deep into long conversations where context pressure erodes bare directives — is worth far more.
-
-Anthropic's [context engineering guide](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) recommends the "right altitude": specific enough to guide, flexible enough to generalize. Terse reasons achieve both.
 </details>
 
 <details>
