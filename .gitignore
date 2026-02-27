@@ -15,6 +15,7 @@ desktop.ini
 __pycache__/
 *.pyc
 *.png
+!assets/*.png
 
 # claude-managed (not user files)
 backup/

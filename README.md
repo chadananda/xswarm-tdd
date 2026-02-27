@@ -1,3 +1,5 @@
+![Claude Harness](assets/header.png)
+
 # claude-harness
 
 ### Domain Mode Auto-Switching Meta Harness for Claude Code
