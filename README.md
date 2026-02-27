@@ -68,14 +68,14 @@ That's what domain switching does.
 ## Table of Contents
 
 - [Domain Switching](#domain-switching) — The meta-harness architecture
-- [dev](#dev--software-development) — TDD, agent pipeline, teams, stuck protocol
-- [plan](#plan--project-planning) — Requirements gathering, task decomposition
-- [doc](#doc--documentation) — Documentation rules, placement, structure
-- [content](#content--blog--article-writing) — SEO headers, readability, image placement, linking
-- [review](#review--code-review) — Code review criteria, YAGNI, minimization
-- [seo](#seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
-- [plan-saas](#plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
-- [plan-api](#plan-api--api-product-planner) — 4-phase pipeline: validate → strategy → technical → 52-week developer GTM
+- [Domain: dev](#dev--software-development) — TDD, agent pipeline, teams, stuck protocol
+- [Domain: plan](#plan--project-planning) — Requirements gathering, task decomposition
+- [Domain: doc](#doc--documentation) — Documentation rules, placement, structure
+- [Domain: content](#content--blog--article-writing) — SEO headers, readability, image placement, linking
+- [Domain: review](#review--code-review) — Code review criteria, YAGNI, minimization
+- [Domain: seo](#seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
+- [Domain: plan-saas](#plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
+- [Domain: plan-api](#plan-api--api-product-planner) — 4-phase pipeline: validate → strategy → technical → 52-week developer GTM
 - [Skills](#skills--lazy-loaded-capabilities) — 24 on-demand capabilities
 - [Principles-First Instructions](#principles-first-instructions) — Why rules with reasons outperform bare commands
 - [The Zen of Radical Compression](#the-zen-of-radical-compression) — 4,100 → 296 lines, rewritten by Claude itself
