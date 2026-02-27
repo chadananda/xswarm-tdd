@@ -1,112 +1,118 @@
 # claude-harness
 
-### Principles-First Harness Engineering for Claude Code
+### Domain Mode Auto-Switching Meta Harness for Claude Code
 
 > *"The smallest set of high-signal tokens that maximize the likelihood of some desired outcome."*
 > — Anthropic, [Effective Context Engineering for AI Agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
 
-Hi. This is my actual `~/.claude` folder — the one I use every day for real work. It's a **harness**: a multi-agent orchestration system that makes Claude do TDD whether it wants to or not. Twenty curated skills, custom hooks, and hard-won opinions about how AI should write code.
+This is my actual `~/.claude` folder — the one I use every day for real work. It's a **harness**: a domain-aware orchestration system with six specialized modes that load rich, domain-specific workflows on demand while paying zero context cost when idle. TDD-enforced coding agents, SEO analysis with current-year knowledge, end-to-end SaaS planning — each domain mode brings deep expertise without polluting the others.
 
-It's also the experimental playground for [xswarm](https://xswarm.ai) coding agents — autonomous agent swarms for software development. The team-lead pipeline, the stuck protocol, the TDD enforcement architecture — these all started here as experiments and evolved into patterns I trust enough to ship.
+It's also the experimental playground for [xswarm](https://xswarm.ai) coding agents — autonomous agent swarms for software development.
 
 **Author:** Chad Jones / [xswarm.ai](https://xswarm.ai) / [chadananda@gmail.com](mailto:chadananda@gmail.com)
 
 ---
 
-## Principles-First Harness Engineering
+## Table of Contents
 
-The central idea: **every instruction should carry its own rationale.** Not "do this" but "do this — *because*." This isn't a formatting preference — it's the difference between compliance and judgment.
+- [Domain Mode Switching](#domain-mode-switching) — The meta-harness architecture
+- [Mode: dev](#mode-dev--software-development) — TDD, agent pipeline, teams, stuck protocol
+- [Mode: plan](#mode-plan--project-planning) — Requirements gathering, task decomposition
+- [Mode: doc](#mode-doc--documentation) — Documentation rules, placement, structure
+- [Mode: review](#mode-review--code-review) — Code review criteria, YAGNI, minimization
+- [Mode: seo](#mode-seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
+- [Mode: plan-saas](#mode-plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
+- [Skills](#skills--lazy-loaded-capabilities) — 21 on-demand capabilities
+- [The Compression Story](#the-compression-story) — 4,100 → 296 lines in 4 rounds
+- [Getting Started](#getting-started)
+- [Design Decisions](#design-decisions)
+- [Making It Your Own](#making-it-your-own)
 
-Bare rules get pattern-matched: "I see a rule, I follow it." When context pressure mounts (and it always does), bare rules are the first things the model drops. Principled rules get *reasoned about*: "I understand what this protects, so I apply it correctly even in edge cases the author didn't anticipate." The reason transforms mechanical compliance into informed judgment — the model defends the rule because it understands what's at stake.
+---
+
+## Domain Mode Switching
+
+The central architectural insight: **domain expertise should load on demand, not pollute every conversation.** SEO knowledge about deprecated schema types is critical during site audits but pure waste during feature development. TDD agent pipelines are essential for coding but irrelevant during content planning. Each domain is a deep, self-contained world — the meta-harness keeps them separated.
+
+```
+                              CLAUDE.md (~15 lines)
+                              The Orchestrator
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+              classify activity   no match?     explicit *mode?
+                    │           just Claude        override
+                    ▼               │               │
+              ┌─────────────────────┴───────────────┘
+              │
+              ▼
+     ┌────────────────────────────────────────────────────┐
+     │  modes/                                             │
+     │  ├── dev.md          ~25 lines + 251 lines agents  │
+     │  ├── plan.md         ~10 lines                     │
+     │  ├── doc.md          ~10 lines                     │
+     │  ├── review.md       ~10 lines                     │
+     │  ├── seo.md          ~45 lines + ~231 lines refs   │
+     │  └── plan-saas.md    ~8 lines + ~1,770 lines refs  │
+     └────────────────────────────────────────────────────┘
+```
+
+**How it works:** CLAUDE.md is ~15 lines — a routing table. Claude reads the user's prompt, classifies the activity, and reads one mode file (a single Read call). No hooks, no regex, no external scripts. Claude is the best classifier — it understands intent, not just keywords. Explicit `*dev`, `*seo`, etc. override classification.
+
+**Why this matters:**
+
+| Scenario | Context Loaded | Lines |
+|----------|---------------|-------|
+| Ad-hoc / questions / file ops | CLAUDE.md only | ~15 |
+| Feature development | CLAUDE.md + modes/dev.md | ~40 |
+| Documentation | CLAUDE.md + modes/doc.md | ~25 |
+| Project planning | CLAUDE.md + modes/plan.md | ~25 |
+| Code review | CLAUDE.md + modes/review.md | ~25 |
+| SEO analysis | CLAUDE.md + modes/seo.md + refs | ~45 + ~40-60/ref |
+| SaaS planning | CLAUDE.md + mode + skill + refs | ~75 + ~60-140/phase |
+
+Most work pays **zero mode overhead**. Each mode can be arbitrarily rich — thousands of lines of domain knowledge — without taxing unrelated work. Adding a new domain is just a markdown file plus a row in the routing table. No code changes.
+
+**The key principle:** modes don't just save tokens — they protect *attention*. A model reasoning about code architecture doesn't need SEO schema deprecation rules competing for attention. A model scoring SaaS viability doesn't need TDD enforcement instructions creating noise. Isolation isn't just efficient. It's *correct*.
+
+### Principles-First Instructions
+
+Every instruction across all modes follows one rule: **carry your own rationale.**
 
 ```
 Bare:        Run tests after EVERY change.
 Principled:  Run tests after EVERY change — catches regressions before they stack.
 ```
 
-This approach is informed by Anthropic's work on [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents), which recommends the "right altitude" for instructions: *specific enough to guide behavior effectively, yet flexible enough to avoid brittle hardcoding.* A terse reason achieves both — the rule constrains, the reason generalizes.
+Bare rules get pattern-matched and dropped under context pressure. Principled rules get *reasoned about* — the model defends the rule because it understands what's at stake. One sentence of rationale costs ~10 tokens and dramatically improves adherence in long sessions. This approach is informed by Anthropic's [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) guide: *specific enough to guide behavior effectively, yet flexible enough to avoid brittle hardcoding.*
 
-### Harness Engineering
+Two related disciplines underpin this:
 
-Anthropic describes two related disciplines:
+- **[Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)** — curating the optimal set of tokens during inference.
+- **[Effective Harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)** — structuring scaffolding *around* agents for long-running work.
 
-- **[Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)** — curating the optimal set of tokens during inference. System prompts, tools, message history, external data — everything in the context window.
-- **[Effective Harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)** — structuring scaffolding *around* agents for long-running work: decomposition into phases, environmental setup, progress tracking across context windows.
-
-This repo applies both to Claude Code's `~/.claude` configuration. The harness is the CLAUDE.md files, agent definitions, hooks, and skills that shape how Claude works before it writes a single line of code. Every byte gets loaded into every conversation, so the harness must be maximally compact — but *never at the cost of dropping rationale*. Principles are load-bearing; filler is not.
-
-### Design Principles
-
-**1. Principled instructions, terse delivery.** Every rule carries its reason in `Rule — reason.` format. Drop articles, filler, and verbose sentence structure. Never drop the "why." One sentence of rationale costs ~10 tokens and dramatically improves adherence in long sessions where bare directives erode.
-
-**2. Don't re-teach what the model knows.** Claude knows JSDoc syntax, README structure, team coordination. The harness states *rules and constraints* — things Claude would get wrong without guidance. Templates for things the model already knows are pure token waste.
-
-**3. Architecture over prompting.** Telling Claude "DO TDD" works until context pressure wins. This system makes TDD *structural* — each agent gets a fresh context with TDD.md at high priority. Separation of concerns isn't just for code — it's for attention.
-
-### Token Budget
-
-The harness uses **dynamic mode-based context loading** — inspired by Anthropic's "just-in-time context retrieval" pattern from their [context engineering guide](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents): *"maintain lightweight identifiers and dynamically load data at runtime using tools."*
-
-| Scenario | Context Loaded | Lines |
-|----------|---------------|-------|
-| Ad-hoc / questions / file ops | CLAUDE.md only | ~15 |
-| Feature dev | CLAUDE.md + modes/dev.md | ~40 |
-| Documentation | CLAUDE.md + modes/doc.md | ~25 |
-| Planning | CLAUDE.md + modes/plan.md | ~25 |
-| Code review | CLAUDE.md + modes/review.md | ~25 |
-| SEO analysis | CLAUDE.md + modes/seo.md + refs on demand | ~45 + ~40-60/ref |
-| SaaS planning | CLAUDE.md + mode + skill + phase refs on demand | ~75 + ~60-140/phase |
-| Agent files (6 agents + TDD.md) | Per spawn | 251 |
-| Skills (21 directories) | On-demand | — |
-
-Most work (ad-hoc tasks, questions, file ops) pays **zero mode overhead**. Modes can be arbitrarily rich without taxing unrelated work. New modes are just a markdown file — no code changes.
+**Don't re-teach what the model knows.** Claude knows JSDoc syntax, README structure, team coordination. The harness states *rules and constraints* — things Claude would get wrong without guidance. Templates for things the model already knows are pure token waste.
 
 ---
 
-## The Problem
+## Mode: dev — Software Development
 
-Claude Code is brilliant. It's also a golden retriever that desperately wants to please you. Without very specific instructions, it treats you as its free human QA department — writes code confidently, hands it to you, expects *you* to test it and iterate. You become the unpaid tester in an infinite feedback loop.
+**~25 lines loaded** on activation, plus 251 lines of agent definitions on spawn.
 
-We invert that. *Claude* writes the tests. *Claude* verifies its own work. *Claude* catches its own bugs. You make decisions. You approve plans. You don't manually test anything.
+The dev mode solves a specific problem: Claude Code is brilliant but treats you as its free human QA department. Without specific instructions, it writes code confidently, hands it to you, expects *you* to test it and iterate. We invert that. *Claude* writes the tests. *Claude* verifies its own work. *Claude* catches its own bugs. You make decisions. You approve plans. You don't manually test anything.
 
-Left to its own devices, Claude will also:
-- Write 200 lines when 40 would do
-- Generate tests that mirror the implementation rather than driving it
-- "Forget" about test-first after the third feature (context pressure wins)
-- Guess when confused instead of asking you
+### The TDD Protocol
 
----
-
-## How It Works
-
-### `CLAUDE.md` — The Orchestrator
+Lives at `agents/TDD.md` (32 lines). Loaded by every coding agent. Non-negotiable.
 
 ```
-CLAUDE.md (~15 lines)
-  └── modes/           "structured workflows, loaded on demand"
-      ├── dev.md       "TDD, agents, tasks, teams" (~25 lines)
-      ├── plan.md      "architecture, decomposition" (~10 lines)
-      ├── doc.md       "documentation rules" (~10 lines)
-      └── review.md    "code review criteria" (~10 lines)
+  RED → Write ONE failing test. Watch it fail.
+  GREEN → Minimum code to pass. Not what you think you'll need later.
+  REFACTOR → Clean up. Tests still pass? Good. If not, undo.
+  Repeat. One test at a time.
 ```
 
-The orchestrator's entire job is routing. Simple task? Handle it directly — no mode needed. Complex feature? Claude classifies the activity, reads the corresponding mode file (one Read call), and follows the enriched workflow. Ad-hoc tasks, questions, OS help, brainstorming — just Claude being Claude, zero overhead.
-
-### Mode-Based Dynamic Context
-
-**No hook needed for detection.** Claude reads the user's prompt, classifies the activity, and reads the corresponding mode file. This is simpler and more accurate than keyword regex.
-
-| Mode | When | What Loads |
-|------|------|------------|
-| *(none)* | **Most work** | **Nothing extra** |
-| **dev** | Building features | TDD, agents, tasks, teams, YAGNI, style |
-| **plan** | Architecture/design | Planning methodology, decomposition |
-| **doc** | Writing docs | Documentation rules, placement, structure |
-| **review** | Reviewing code | Review criteria, YAGNI checks, minimize |
-| **seo** | SEO analysis | E-E-A-T, CWV, schema, GEO + reference files |
-| **plan-saas** | SaaS project planning | 4-phase pipeline + 9 reference files on demand |
-
-Explicit `*dev`, `*doc`, `*plan`, `*review`, `*seo` override classification. No command or no match = no mode loaded.
+**Why structural, not aspirational?** Telling Claude "DO TDD" works until context pressure wins. By the fifth feature, that instruction is buried under 200k tokens and Claude has reverted to "write everything at once." This system makes TDD *architectural* — each agent gets a fresh context with TDD.md at high priority. Prompts drift. Architecture doesn't.
 
 ### The Agent Pipeline
 
@@ -139,18 +145,78 @@ Teams for independent parallel features; subagents for sequential work or lower 
 
 ### The Stuck Protocol
 
-Every agent is hardwired to escalate the moment anything goes wrong. No fallbacks. No silent failures. The `stuck` agent is the *only* agent allowed to ask you questions. It presents the problem clearly with options. You make a 5-second decision. Work resumes.
+Every agent is hardwired to escalate the moment anything goes wrong. No fallbacks. No silent failures.
 
 | Tier | Response | Example |
 |------|----------|---------|
 | **Tier 1: Self-fix** | Fix once, 30s max | Typo, wrong path, missing import |
 | **Tier 2: Stuck** | Instant human escalation | Design ambiguity, missing spec, 2+ failed attempts |
 
-This is the other half of inverting the human-AI relationship. Without it, Claude guesses when confused and hands you broken output to debug. With it, Claude stops and asks a *specific question with options*. Your role shifts from "unpaid QA" to "technical decision-maker."
+The `stuck` agent is the *only* agent allowed to ask you questions. It presents the problem clearly with options. You make a 5-second decision. Work resumes. Your role shifts from "unpaid QA" to "technical decision-maker."
 
-### SaaS Project Planner (`/plan-saas`)
+---
 
-A comprehensive skill that takes a SaaS idea from napkin sketch to implementation-ready repo with a 12-month marketing calendar. Four linear phases, each producing a deliverable document that feeds into the next:
+## Mode: plan — Project Planning
+
+**~10 lines loaded** on activation.
+
+Interactive requirements gathering and task decomposition. Transforms vague requirements into executable task DAGs using native Claude Code Tasks.
+
+- **Phase 0 (Interactive):** 5W1H analysis + MoSCoW prioritization + Given-When-Then scenarios. Resolves ambiguity before any code is written. Blocks until user approves.
+- **Phase 1 (Autonomous):** Codebase research — finds existing utilities, coding patterns, dependency versions. Anti-hallucination checklist: verify every module, import path, and version before specifying.
+- **Phase 2:** Task decomposition into XS/S/M units (no task > 60 min). Test-first ordering: pure functions before integration.
+- **Phase 3:** Output native Tasks with DAG dependencies for parallel execution.
+
+**Key principle:** Good specs enable mechanical execution. Every task spec includes file paths, imports, patterns to follow, and success criteria. Bad spec: "Implement JWT authentication." Good spec: "Size: S | File: src/routes/api/auth/login.ts | Imports: { hashPassword } from src/lib/auth/hash | Pattern: Follow src/routes/api/admin/auth/+server.ts lines 23-45 | Success: POST /api/auth/login returns 200+JWT on valid creds, 401 on invalid."
+
+---
+
+## Mode: doc — Documentation
+
+**~10 lines loaded** on activation.
+
+Documentation rules, placement conventions, and structure. Keeps docs co-located with code, concise, and practical. JSDoc for inline documentation, README for each component/feature.
+
+---
+
+## Mode: review — Code Review
+
+**~10 lines loaded** on activation.
+
+Multi-agent code review pipeline. Review criteria include correctness, security (OWASP top 10), YAGNI violations, dead code, and opportunities to minimize. The reviewer agent applies the same minimize-first philosophy from dev mode: if code doesn't shrink, stop changing it.
+
+---
+
+## Mode: seo — SEO Analysis
+
+**~45 lines loaded** on activation, plus ~231 lines across 5 reference files loaded on demand.
+
+This mode demonstrates the **reference file pattern** — domain knowledge Claude doesn't have natively, loaded just-in-time per analysis category. SEO changes constantly: schema types get deprecated, Core Web Vitals thresholds shift, AI search optimization is brand new. The mode file contains methodology and critical rules. Reference files contain perishable knowledge.
+
+### What's in the mode file (~45 lines)
+- 7-category weighted scoring methodology (Technical 25%, Content/E-E-A-T 25%, On-Page 20%, Schema 10%, CWV 10%, Images 5%, GEO 5%)
+- Critical rules Claude gets wrong: INP replaced FID, HowTo schema deprecated, FAQ schema restricted, mobile-first 100% complete, E-E-A-T applies to all competitive queries
+- GEO quick wins for AI search optimization
+- Analysis workflow and output format
+
+### Reference files (loaded per category)
+| File | Lines | Domain Knowledge |
+|------|-------|-----------------|
+| `seo/eeat.md` | ~50 | E-E-A-T evaluation framework |
+| `seo/cwv.md` | ~40 | Core Web Vitals thresholds (current) |
+| `seo/schema.md` | ~50 | Schema.org type status + deprecations |
+| `seo/quality-gates.md` | ~40 | Content quality minimums |
+| `seo/geo.md` | ~50 | AI search / Generative Engine Optimization |
+
+Inspired by [claude-seo](https://github.com/AgriciDaniel/claude-seo), distilled from ~1,500 lines to ~276 lines of high-signal content.
+
+---
+
+## Mode: plan-saas — SaaS Project Planner
+
+**~8 lines in mode file**, pointing to a comprehensive skill with **~1,770 lines across 18 files** — all loaded on demand per phase. Zero cost when not in use.
+
+Takes a SaaS idea from napkin sketch to implementation-ready repo with a 12-month marketing calendar. Four linear phases, each producing a deliverable document that feeds into the next:
 
 ```
 Phase 1: VALIDATE        Phase 2: STRATEGY       Phase 3: TECHNICAL      Phase 4: MARKETING
@@ -166,117 +232,102 @@ Phase 1: VALIDATE        Phase 2: STRATEGY       Phase 3: TECHNICAL      Phase 4
   Score ≥10 to proceed
 ```
 
-**Phase 1 (Validate)** absorbs the standalone `/validate-product` command. Conducts a tough-love interview — one question at a time with WebSearch between each to research competitors, market data, and channels. Scores across Product, Acquisition, Market, Defendability, and Buildability (0-3 each, multiplicative). A score under 10 means iterate before proceeding.
+### Phase 1: Validate
+Absorbs the standalone `/validate-product` command. Tough-love interview — one question at a time with WebSearch between each to research competitors, market data, and channels. Scores across 5 factors (0-3 each, multiplicative):
 
-**Phase 2 (Strategy)** develops the Ideal Customer Profile using a 5-layer model (problem identity → buyer profile → psychographics → watering holes → buying behavior), creates a positioning framework with tagline and elevator pitch, and researches competitor pricing pages to recommend specific tiers and prices.
+| Factor | What it measures | Score 3 example |
+|--------|-----------------|-----------------|
+| Product | 10x better than alternatives | Creates new category, paradigm shift |
+| Acquisition | Path to finding users | Built-in virality, distribution moat |
+| Market | Size and growth | >$1B TAM with strong tailwinds |
+| Defendability | Hard to copy | Structural moats: network effects, proprietary data |
+| Buildability | Can execute | Unfair advantage: domain + skills + assets |
 
-**Phase 3 (Technical)** recommends an opinionated tech stack (Vue/Svelte over React, PostgreSQL default, PaaS hosting, managed auth/payments), scopes the MVP ruthlessly with MoSCoW, writes user stories with acceptance criteria, and estimates infrastructure costs.
+Zones: 0-9 Red (iterate), 10-19 Yellow (proceed with caution), 20-49 Green (build it), 50-99 Elite (raise capital), 100+ Unicorn.
 
-**Phase 4 (Marketing)** produces the complete GTM playbook: 20-30 keyword universe (BOFU/MOFU/TOFU), pillar/cluster content architecture, 12-week content calendar with specific article titles, guerrilla marketing tactics (build-in-public, viral waitlist, community infiltration, Product Hunt), channel strategy with ICP-tied reasoning, 12-week launch sequence with hour-by-hour launch day plan, email sequences, and a metrics dashboard with north star metric.
+### Phase 2: Strategy
+Develops the Ideal Customer Profile using a 5-layer model (problem identity → buyer profile → psychographics → watering holes → buying behavior). Creates a positioning framework with tagline and elevator pitch. Researches competitor pricing pages to recommend specific tiers and prices with dollar amounts.
 
-The skill uses 9 RAG-loaded reference files (~800 lines of domain knowledge) covering scoring rubrics, ICP frameworks, pricing models, tech stacks, SEO strategy, content marketing, guerrilla tactics, distribution channels, and launch sequencing. All loaded on demand per phase — zero cost when not in use.
+### Phase 3: Technical
+Opinionated tech stack (Vue/Svelte over React, PostgreSQL default, PaaS hosting, managed auth/payments). Ruthless MVP scoping with MoSCoW — explicit "Won't Have" list with reasons to prevent scope creep. User stories with acceptance criteria. Architecture, data model, API surface. 4-6 development milestones with infrastructure cost estimates.
+
+### Phase 4: Marketing
+The most comprehensive phase — produces a complete GTM playbook:
+- **Keyword universe** (20-30 keywords, BOFU/MOFU/TOFU classified)
+- **Content architecture** (pillar/cluster model with internal linking strategy)
+- **12-week content calendar** with specific article titles and target keywords
+- **Guerrilla marketing** (build-in-public, viral waitlist, community infiltration, Product Hunt prep, micro-influencer outreach)
+- **Channel strategy** (3 primary + 2 secondary with ICP-tied reasoning)
+- **12-week launch sequence** with hour-by-hour launch day plan
+- **Email sequences** (7-email onboarding drip + newsletter framework)
+- **Metrics dashboard** (north star metric + weekly/monthly KPIs)
+
+### The reference file architecture
 
 ```
-skills/plan-saas/           # 18 files, ~1,770 lines
-├── SKILL.md                # Orchestrator: routing, phase state, commands
-├── skills/                 # 4 phase sub-skills (~710 lines)
-├── references/             # 9 domain knowledge files (~790 lines)
-└── templates/              # 4 output document templates (~190 lines)
+skills/plan-saas/                        # 18 files, ~1,770 lines total
+├── SKILL.md                             # Orchestrator: routing, phase gating
+├── skills/                              # 4 sub-skills (~710 lines)
+│   ├── plan-validate.md                 # Phase 1 interview + scoring
+│   ├── plan-strategy.md                 # Phase 2 ICP + positioning + pricing
+│   ├── plan-technical.md                # Phase 3 stack + MVP + architecture
+│   └── plan-marketing.md                # Phase 4 GTM + content + launch
+├── references/                          # 9 domain knowledge files (~790 lines)
+│   ├── viability-scoring.md             # Scoring rubrics + challenge prompts
+│   ├── icp-framework.md                 # 5-layer ICP model
+│   ├── pricing-models.md               # SaaS pricing patterns + tier design
+│   ├── saas-tech-stacks.md             # Stacks by product type + anti-patterns
+│   ├── seo-strategy.md                 # SEO funnel + keyword research + GEO
+│   ├── content-marketing.md            # Content types by funnel stage
+│   ├── guerrilla-playbook.md           # Tactics + benchmarks
+│   ├── distribution-channels.md        # Channel deep dives + prioritization
+│   └── launch-sequence.md              # 12-week timeline + launch day plan
+└── templates/                           # 4 output templates (~190 lines)
+    ├── viability-report.md
+    ├── strategy-brief.md
+    ├── software-prd.md
+    └── marketing-prd.md
 ```
 
-**Commands:** `/plan-saas [idea]` runs the full pipeline. `/plan-saas validate`, `strategy`, `technical`, `marketing` run individual phases. `/plan-saas resume` detects last completed phase and continues.
+Each phase loads only its relevant references (~60-140 lines), not the full ~790 lines. Same just-in-time pattern as the SEO mode, scaled up.
+
+**Commands:** `/plan-saas [idea]` (full pipeline), `/plan-saas validate|strategy|technical|marketing` (individual phases), `/plan-saas resume` (detect and continue).
 
 ---
 
-## The TDD Protocol
+## Skills — Lazy-Loaded Capabilities
 
-Lives at `agents/TDD.md` (32 lines). Loaded by every coding agent via `@TDD.md`. Non-negotiable.
-
-```
-  RED → Write ONE failing test. Watch it fail.
-  GREEN → Minimum code to pass. Not what you think you'll need later.
-  REFACTOR → Clean up. Tests still pass? Good. If not, undo.
-  Repeat. One test at a time.
-```
-
-**Why not just say "Do TDD" in the prompt?** Because by the fifth feature, that instruction is buried under 200k tokens and Claude has reverted to its "write everything at once" instinct. Prompts drift. Architecture doesn't. Each agent invocation gets a *fresh* context with TDD at high priority.
-
----
-
-## What's In the Box
+Skills only wake up when relevant. Claude scans each skill's description (~100 tokens) and ignores the rest until triggered. 21 skills cost almost nothing at idle.
 
 ```
-~/.claude/
-├── CLAUDE.md                     # ~15-line orchestrator with mode table
-├── settings.json                 # Permissions, hooks, env vars
-├── notify.py                     # Desktop notification on agent completion
+skills/
+├── [Development Workflow]
+│   ├── plan/                    # Requirements + task decomposition
+│   ├── plan-saas/               # SaaS idea → launch-ready (4-phase pipeline)
+│   ├── bdd-playwright/          # Gherkin + ARIA locators + axe-core
+│   ├── systematic-debugging/    # 4-phase root cause analysis
+│   ├── using-git-worktrees/     # Parallel branch isolation
+│   ├── property-based-testing/  # Hypothesis/QuickCheck
+│   ├── notify-assistant/        # Ping OpenClaw on completion
+│   └── security-scan/           # xswarm-ai-sanitize secret detection
 │
-├── modes/                        # Dynamic context (loaded on demand)
-│   ├── dev.md                   # TDD, agents, tasks, teams (~25 lines)
-│   ├── plan.md                  # Architecture, decomposition (~10 lines)
-│   ├── doc.md                   # Documentation rules (~10 lines)
-│   ├── review.md                # Code review criteria (~10 lines)
-│   ├── seo.md                   # SEO methodology + scoring (~45 lines)
-│   ├── plan-saas.md             # SaaS project planning (~8 lines)
-│   └── seo/                     # SEO reference files (loaded on demand)
-│       ├── cwv.md               # Core Web Vitals thresholds
-│       ├── schema.md            # Schema.org type status + deprecations
-│       ├── eeat.md              # E-E-A-T evaluation framework
-│       ├── quality-gates.md     # Content quality minimums
-│       └── geo.md               # AI search / GEO optimization
+├── [Language & Framework]
+│   ├── modern-python/           # uv/ruff/ty tooling
+│   ├── frontend-design/         # Bold UI, no "AI slop"
+│   └── web-artifacts-builder/   # React/Tailwind/shadcn
 │
-├── agents/                       # The team (251 lines total)
-│   ├── TDD.md                   # Shared protocol (32 lines)
-│   ├── coder.md                 # Builder (47 lines)
-│   ├── reviewer.md              # Critic + minimizer (48 lines)
-│   ├── tester.md                # Verifier, conditional (39 lines)
-│   ├── team-lead.md             # Manager, runs on Opus (27 lines)
-│   ├── doc.md                   # Documentarian (22 lines)
-│   └── stuck.md                 # Human escalation (36 lines)
+├── [Documents & Formats]
+│   ├── doc-coauthoring/         # Structured doc writing
+│   ├── docx/ pdf/ pptx/ xlsx/  # Office formats
 │
-├── commands/                     # Slash commands
-│   ├── commit.md                # Trunk-style git workflow
-│   ├── review.md                # Multi-agent code review
-│   ├── seo.md                   # SEO analysis suite (activates seo mode)
-│   ├── validate-product.md      # Startup idea validation
-│   └── cleanup-tmp.md           # Janitor duty
-│
-├── hooks/                        # Automated guardrails
-│   ├── warn-root-files.py       # Block non-config files in project root
-│   └── cleanup-tmp-scripts.py   # Tidy up after task completion
-│
-└── skills/                       # 21 on-demand capabilities
-    ├── [Development Workflow]
-    │   ├── plan/                 # Requirements + task decomposition
-    │   ├── plan-saas/            # SaaS idea → launch-ready (4-phase pipeline)
-    │   ├── bdd-playwright/       # Gherkin + ARIA locators + axe-core
-    │   ├── systematic-debugging/ # 4-phase root cause analysis
-    │   ├── using-git-worktrees/  # Parallel branch isolation
-    │   ├── property-based-testing/ # Hypothesis/QuickCheck
-    │   ├── notify-assistant/     # Ping OpenClaw on completion
-    │   └── security-scan/        # xswarm-ai-sanitize secret detection
-    │
-    ├── [Language & Framework]
-    │   ├── modern-python/        # uv/ruff/ty tooling
-    │   ├── frontend-design/      # Bold UI, no "AI slop"
-    │   └── web-artifacts-builder/ # React/Tailwind/shadcn
-    │
-    ├── [Documents & Formats]
-    │   ├── doc-coauthoring/      # Structured doc writing
-    │   ├── docx/ pdf/ pptx/ xlsx/ # Office formats
-    │
-    └── [Meta & Tooling]
-        ├── agent-builder/        # Build your own agents
-        ├── skill-creator/        # Build your own skills
-        ├── mcp-builder/          # MCP server dev guide
-        ├── project-cleanup/      # Organize messy projects
-        ├── tui-viewer/           # TUI screenshot verification
-        └── webapp-testing/       # Playwright browser testing
+└── [Meta & Tooling]
+    ├── agent-builder/           # Build your own agents
+    ├── skill-creator/           # Build your own skills
+    ├── mcp-builder/             # MCP server dev guide
+    ├── project-cleanup/         # Organize messy projects
+    ├── tui-viewer/              # TUI screenshot verification
+    └── webapp-testing/          # Playwright browser testing
 ```
-
-### Skills Are Lazy-Loaded
-
-Skills only wake up when relevant. Claude scans each skill's description (~100 tokens) and ignores the rest until triggered. Twenty skills cost almost nothing at idle.
 
 **Skill sources:** [Anthropic](https://github.com/anthropics/skills) • [Superpowers](https://github.com/obra/superpowers) (MIT) • [Trail of Bits](https://github.com/trailofbits/skills) (CC BY-SA 4.0)
 
@@ -286,25 +337,14 @@ Skills only wake up when relevant. Claude scans each skill's description (~100 t
 
 Principles-first doesn't mean verbose. The harness grew organically to 4,100 lines, then was compressed to 296 — a 77% reduction — while *adding* principled rationale to every rule that lacked one. The insight: most of those 4,100 lines were templates, examples, and re-explanations of things Claude already knows. The principles themselves are cheap. Filler is expensive.
 
-### Round 1: Architectural (4,100 → 1,266 lines)
-Merged critic + refactor into one reviewer. Replaced 1,213-line planning agent with 180-line `/plan` skill. Deleted stale `context/` directory. Dropped redundant second coder pass.
+| Round | What Changed | Always-Loaded | Agent Pool |
+|-------|-------------|---------------|------------|
+| **1: Architectural** | Merged critics, replaced 1,213-line planner with 180-line skill | 181 | 1,066 |
+| **2: Structural** | Removed model-known content, dropped templates | 68 | 464 |
+| **3: Terse + Principled** | `Rule — reason.` format, cut filler, added rationale | 45 | 251 |
+| **4: Dynamic Modes** | On-demand loading, ~15 line orchestrator | ~15 | 251 |
 
-### Round 2: Structural (1,266 → 640 lines)
-Removed content duplicating system context (plugin lists, skill references, team mechanics). Removed JSDoc/README templates from doc.md (390 → 56 lines) — Claude knows JSDoc. Merged CLAUDE_conventions.md into CLAUDE.md.
-
-### Round 3: Terse + Principled (640 → 296 lines)
-Dropped articles, filler words, verbose sentence structure. Adopted `Rule — reason.` format throughout. Every rule *gained* a rationale clause while the total line count *dropped* — because the filler removed was worth far more than the reasons added.
-
-### Round 4: Dynamic Modes (static → on-demand)
-Replaced static `@-includes` with mode-based dynamic context loading. CLAUDE.md shrunk from 28 lines (with workflow + agents includes) to ~15 lines. Mode content moved to `modes/` — loaded only when the activity matches. Ad-hoc work pays zero overhead. Inspired by [Carl](https://github.com/ChristopherKahler/carl) but using Claude's own classification instead of keyword regex hooks.
-
-| What | Round 1 | Round 2 | Round 3 | Round 4 |
-|------|---------|---------|---------|---------|
-| Always-loaded (CLAUDE.md) | 181 | 68 | 45 | ~15 |
-| Mode/workflow content | — | — | (in always-loaded) | ~55 + ~231 refs (on-demand) |
-| Agent pool (all 7 files) | 1,066 | 464 | 251 | 251 |
-
-**The takeaway:** Agent instructions load on every invocation. A 500-line agent burns 2,000+ tokens before doing any work. But the answer isn't stripping reasons to save tokens — it's stripping everything *except* rules and reasons, and loading context *only when it's needed*. Principles are load-bearing structure. Templates, examples, and re-explanations of model knowledge are scaffolding you can remove once the building stands.
+**The takeaway:** Agent instructions load on every invocation. A 500-line agent burns 2,000+ tokens before doing any work. But the answer isn't stripping reasons to save tokens — it's stripping everything *except* rules and reasons, and loading context *only when it's needed*. Principles are load-bearing structure. Templates and re-explanations are scaffolding you remove once the building stands.
 
 ---
 
@@ -327,6 +367,7 @@ Cherry-pick what you want. The system is modular:
 - Just want the pipeline? Take the `agents/` folder.
 - Just want skills? Copy individual skill folders into `~/.claude/skills/`.
 - Just want modes? Copy `modes/` and the mode table from CLAUDE.md.
+- Just want SaaS planning? Copy `skills/plan-saas/` + `modes/plan-saas.md`.
 
 ### Requirements
 
@@ -339,8 +380,8 @@ Cherry-pick what you want. The system is modular:
 ## Design Decisions
 
 <details>
-<summary><b>Why dynamic modes instead of static @-includes?</b></summary>
-Static includes load ~45 lines into every conversation whether needed or not. Most conversations (questions, file ops, brainstorming) don't need TDD rules or agent rosters. Dynamic modes load structured workflows only when the activity warrants it — typically saving 67% on ad-hoc work while enabling richer mode content without taxing unrelated tasks.
+<summary><b>Why domain modes instead of one big CLAUDE.md?</b></summary>
+A monolithic CLAUDE.md with all domain knowledge loads everything into every conversation. SEO schema deprecation rules compete for attention during feature development. TDD agent pipelines create noise during content planning. Domain modes solve both the token cost problem (don't load what you don't need) and the attention quality problem (don't distract the model with irrelevant constraints). Each mode can be thousands of lines deep without affecting any other mode.
 </details>
 
 <details>
@@ -349,13 +390,8 @@ Keyword regex (like Carl's approach) misfires on ambiguous words and requires ma
 </details>
 
 <details>
-<summary><b>Why does the SEO mode have reference sub-files?</b></summary>
-SEO requires domain knowledge Claude doesn't have natively — deprecated schema types, current CWV thresholds, GEO statistics, quality gates. The mode file (~45 lines) loads methodology and critical rules. Reference files (~231 lines across 5 files) load on demand per analysis category. Inspired by <a href="https://github.com/AgriciDaniel/claude-seo">claude-seo</a>, distilled from ~1,500 lines to ~276 lines of high-signal content.
-</details>
-
-<details>
-<summary><b>Why is plan-saas a skill with reference files instead of a single prompt?</b></summary>
-A 4-phase SaaS planning workflow with domain knowledge (scoring rubrics, pricing models, launch tactics) would be ~1,800 lines as a single file — loaded into every conversation whether needed or not. As a skill with 9 RAG-loaded reference files, only the orchestrator (~75 lines) loads at detection time. Each phase reads its specific references on demand (~60-140 lines). Same pattern as the SEO mode but at larger scale: domain knowledge Claude doesn't have natively, loaded just-in-time per phase.
+<summary><b>Why reference sub-files for SEO and SaaS planning?</b></summary>
+Both domains require knowledge Claude doesn't have natively — deprecated schema types, current CWV thresholds, SaaS pricing benchmarks, guerrilla marketing tactics with specific numbers. The mode file loads methodology and rules. Reference files load perishable domain knowledge on demand per sub-task. SEO: ~231 lines across 5 files. SaaS planning: ~790 lines across 9 files. Neither pollutes the other or loads when unused.
 </details>
 
 <details>
@@ -382,13 +418,13 @@ Tasks already provide DAG dependencies, status tracking, and blocking semantics.
 
 ## Making It Your Own
 
+**Want to add a domain mode?** Create a `.md` file in `modes/` and add a row to the mode table in CLAUDE.md. That's it. No code changes. Your new mode can be 10 lines or 1,000 — it only loads when the activity matches.
+
 **Don't like strict TDD?** Edit `agents/TDD.md`. Or delete it entirely.
 
 **Want different models?** Each agent has a `model:` field in its frontmatter. Swap `sonnet` for `opus` where you want brains, `haiku` where you want speed.
 
 **Want to add agents?** Create a `.md` file in `agents/` with YAML frontmatter (name, description, tools, model).
-
-**Want to add a mode?** Create a `.md` file in `modes/` and add a row to the mode table in CLAUDE.md. No code changes needed.
 
 **Want project-specific behavior?** Create `.claude/CLAUDE.md` in your project root. Project-level instructions override global ones.
 
@@ -398,11 +434,11 @@ Tasks already provide DAG dependencies, status tracking, and blocking semantics.
 
 This repo is the petri dish for [xswarm](https://xswarm.ai) — an autonomous agent swarm framework for 2026. Everything here started as an experiment:
 
+- **Domain mode switching** — isolated context loading makes each domain arbitrarily deep without cross-contamination.
 - **Team-lead pipeline** — managers work better when they can't write code; they focus on routing and quality.
 - **Stuck protocol** — agents that can't guess eliminated more wasted time than any other change.
 - **TDD enforcement** — making test-first structural, not aspirational, changed everything.
 - **Harness compression** — token efficiency is an architecture concern, not an optimization.
-- **Dynamic modes** — just-in-time context loading eliminates overhead for work that doesn't need structured workflows.
 
 Watch [xswarm.ai](https://xswarm.ai) for where this is heading: multi-agent orchestration for any software development task.
 
