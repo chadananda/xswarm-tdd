@@ -5,7 +5,7 @@
 > *"The smallest set of high-signal tokens that maximize the likelihood of some desired outcome."*
 > — Anthropic, [Effective Context Engineering for AI Agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
 
-This is my actual `~/.claude` folder — the one I use every day for real work. It's a **harness**: a domain-aware orchestration system with seven specialized domains that load rich, domain-specific workflows on demand while paying zero context cost when idle. TDD-enforced coding agents, SEO analysis with current-year knowledge, end-to-end SaaS planning — each domain brings deep expertise without polluting the others.
+This is my actual `~/.claude` folder — the one I use every day for real work. It's a **harness**: a domain-aware orchestration system with eight specialized domains that load rich, domain-specific workflows on demand while paying zero context cost when idle. TDD-enforced coding agents, SEO analysis with current-year knowledge, end-to-end SaaS and API product planning — each domain brings deep expertise without polluting the others.
 
 It's also the experimental playground for [xswarm](https://xswarm.ai) coding agents — autonomous agent swarms for software development.
 
@@ -75,7 +75,8 @@ That's what domain switching does.
 - [review](#review--code-review) — Code review criteria, YAGNI, minimization
 - [seo](#seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
 - [plan-saas](#plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
-- [Skills](#skills--lazy-loaded-capabilities) — 21 on-demand capabilities
+- [plan-api](#plan-api--api-product-planner) — 4-phase pipeline: validate → strategy → technical → 52-week developer GTM
+- [Skills](#skills--lazy-loaded-capabilities) — 24 on-demand capabilities
 - [Principles-First Instructions](#principles-first-instructions) — Why rules with reasons outperform bare commands
 - [The Zen of Radical Compression](#the-zen-of-radical-compression) — 4,100 → 296 lines, rewritten by Claude itself
 - [Getting Started](#getting-started)
@@ -108,7 +109,8 @@ This harness solves the multiplier problem by keeping CLAUDE.md to **~15 lines**
      │  ├── content.md      ~45 lines                     │
      │  ├── review.md       ~10 lines                     │
      │  ├── seo.md          ~45 lines + ~231 lines refs   │
-     │  └── plan-saas.md    ~8 lines + ~1,770 lines refs  │
+     │  ├── plan-saas.md    ~8 lines + ~1,770 lines refs  │
+     │  └── plan-api.md     ~7 lines + ~2,000 lines refs  │
      └────────────────────────────────────────────────────┘
 ```
 
@@ -126,6 +128,7 @@ This harness solves the multiplier problem by keeping CLAUDE.md to **~15 lines**
 | Code review | CLAUDE.md + domains/review.md | ~25 |
 | SEO analysis | CLAUDE.md + domains/seo.md + refs | ~45 + ~40-60/ref |
 | SaaS planning | CLAUDE.md + domain + skill + refs | ~75 + ~60-140/phase |
+| API product planning | CLAUDE.md + domain + skill + refs | ~75 + ~70-160/phase |
 
 Most work pays **zero domain overhead**. A typical harness with equivalent domain coverage would load 300-500 lines into every conversation. This one loads 15. That's a 20-30x reduction on the multiplier — and because agents amplify the cost, the real savings in a multi-agent pipeline are even larger.
 
@@ -359,15 +362,80 @@ Each phase loads only its relevant references (~60-140 lines), not the full ~790
 
 ---
 
+## plan-api — API Product Planner
+
+**~7 lines in domain file**, pointing to a comprehensive skill with **~2,000 lines across 18 files** — all loaded on demand per phase. Zero cost when not in use.
+
+Takes an API product idea from concept to developer go-to-market with a 52-week marketing calendar. Same 4-phase architecture as plan-saas (validate → strategy → technical → marketing) but with API-specific domain knowledge throughout:
+
+```
+Phase 1: VALIDATE        Phase 2: STRATEGY       Phase 3: TECHNICAL      Phase 4: MARKETING
+┌────────────────┐      ┌────────────────┐      ┌────────────────┐      ┌────────────────┐
+│ 6-question     │      │ Developer      │      │ OpenAPI 3.1    │      │ 52-week        │
+│ interview with │─────▶│ personas       │─────▶│ spec skeleton  │─────▶│ editorial      │
+│ API research   │      │ API positioning│      │ Gateway config │      │ calendar       │
+│ 5-factor score │      │ Usage pricing  │      │ SDK targets    │      │ Video/shorts   │
+│                │      │ DX strategy    │      │ Wrapper matrix │      │ Podcast plan   │
+│ → api-viability│      │ → api-strategy-│      │ → api-technical│      │ → api-marketing│
+│   -report.md   │      │   brief.md     │      │   -prd.md      │      │   -prd.md      │
+└────────────────┘      └────────────────┘      └────────────────┘      └────────────────┘
+  Score ≥10 to proceed
+```
+
+### Key differences from plan-saas
+
+| Aspect | plan-saas | plan-api |
+|--------|-----------|----------|
+| Audience | Business buyers | Developers (+ their managers) |
+| Viability factors | Product/Acquisition/Market/Defendability/Buildability | DeveloperDemand/Alternatives/Integration/Monetization/Maintainability |
+| ICP model | 5-layer general | Developer personas (frontend/backend/DevOps/PM) |
+| Pricing | Flat/tiered/seat/freemium | Usage-based (calls/bandwidth), tiered quotas, marketplace rev-share |
+| Technical output | Tech stack + MVP scope + architecture | OpenAPI spec + gateway config + SDK plan + wrapper matrix |
+| Content calendar | 12-week | 52-week (API products have longer adoption cycles) |
+| Distribution | SEO + communities + Product Hunt | Marketplaces (RapidAPI, Postman) + registries (npm, PyPI) + dev communities |
+| Extra channels | — | Video/shorts, podcast outreach, syndicated content (dev.to, Medium, Hashnode) |
+
+### The reference file architecture
+
+```
+skills/plan-api/                         # 18 files, ~2,000 lines total
+├── SKILL.md                             # Orchestrator: routing, phase gating
+├── skills/                              # 4 sub-skills
+│   ├── plan-validate-api.md             # Phase 1 API viability interview + scoring
+│   ├── plan-strategy-api.md             # Phase 2 developer personas + positioning + pricing
+│   ├── plan-technical-api.md            # Phase 3 OpenAPI + gateway + SDKs + wrappers
+│   └── plan-marketing-api.md            # Phase 4 52-week GTM + video + podcast
+├── references/                          # 9 domain knowledge files
+│   ├── api-viability-scoring.md         # API-specific 5-factor scoring rubric
+│   ├── developer-personas.md            # Developer persona model + evaluation behavior
+│   ├── api-pricing-models.md            # Usage-based, tiered, marketplace pricing
+│   ├── api-tech-stacks.md              # Gateway, auth, SDKs, doc tools
+│   ├── wrapper-matrix.md               # 15+ platform build-vs-wrap framework
+│   ├── developer-content.md            # Dev content types, editorial calendar, syndication
+│   ├── api-distribution.md             # Marketplaces, registries, communities, backlinks
+│   ├── api-video-podcast.md            # Video/shorts calendars, podcast outreach
+│   └── api-launch-sequence.md          # 12-week launch, email, social, metrics
+└── templates/                           # 4 output templates
+    ├── api-viability-report.md
+    ├── api-strategy-brief.md
+    ├── api-technical-prd.md
+    └── api-marketing-prd.md
+```
+
+**Commands:** `/plan-api [idea]` (full pipeline), `/plan-api validate|strategy|technical|marketing` (individual phases), `/plan-api resume` (detect and continue).
+
+---
+
 ## Skills — Lazy-Loaded Capabilities
 
-Skills only wake up when relevant. Claude scans each skill's description (~100 tokens) and ignores the rest until triggered. 23 skills cost almost nothing at idle.
+Skills only wake up when relevant. Claude scans each skill's description (~100 tokens) and ignores the rest until triggered. 24 skills cost almost nothing at idle.
 
 ```
 skills/
 ├── [Development Workflow]
 │   ├── plan/                    # Requirements + task decomposition
 │   ├── plan-saas/               # SaaS idea → launch-ready (4-phase pipeline)
+│   ├── plan-api/                # API product → developer GTM (4-phase pipeline)
 │   ├── bdd-playwright/          # Gherkin + ARIA locators + axe-core
 │   ├── systematic-debugging/    # 4-phase root cause analysis
 │   ├── using-git-worktrees/     # Parallel branch isolation
@@ -477,6 +545,7 @@ Cherry-pick what you want. The system is modular:
 - Just want skills? Copy individual skill folders into `~/.claude/skills/`.
 - Just want domains? Copy `domains/` and the domain table from CLAUDE.md.
 - Just want SaaS planning? Copy `skills/plan-saas/` + `domains/plan-saas.md`.
+- Just want API product planning? Copy `skills/plan-api/` + `domains/plan-api.md`.
 
 ### Requirements
 
