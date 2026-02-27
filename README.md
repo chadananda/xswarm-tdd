@@ -13,6 +13,22 @@ It's also the experimental playground for [xswarm](https://xswarm.ai) coding age
 
 ---
 
+## The Problem: CLAUDE.md Is a Multiplier
+
+Every token in your CLAUDE.md loads into **every single conversation**. Every agent spawn. Every subagent. Every tool call that reads context. It's not a one-time cost — it's a multiplier applied to everything Claude does.
+
+This creates three compounding problems:
+
+**1. Context dilution.** A 200-line CLAUDE.md means Claude is always reasoning through 200 lines of instructions before doing anything. Most of those lines are irrelevant to the current task. SEO rules dilute attention during coding. TDD protocols create noise during documentation. The model's finite attention gets spread across constraints that don't apply, and the constraints that *do* apply get less of it. This isn't theoretical — instruction adherence measurably degrades as context grows.
+
+**2. The depth-vs-breadth trap.** You want deep expertise in each domain: detailed TDD enforcement for coding, current-year schema deprecations for SEO, 5-factor scoring rubrics for idea validation. But depth in one domain taxes *every other domain*. So you either keep instructions shallow (and Claude gets things wrong) or go deep (and pay the token/attention cost everywhere). Most harnesses choose shallow. This one doesn't — because it doesn't have to.
+
+**3. Agent cost amplification.** In a multi-agent pipeline (coder → reviewer → tester → doc), each agent loads your CLAUDE.md independently. A 4-agent pipeline on a 200-line CLAUDE.md burns 800 lines of instruction tokens before any agent writes a single line of code. With teams running in parallel, this multiplies further. The cost of a bloated harness isn't linear — it's multiplicative with your agent architecture.
+
+**The solution is architectural, not editorial.** You can't compress your way out of a multiplier problem. You need *isolation* — each domain loads its own deep expertise only when relevant, paying zero cost when idle. That's what domain mode switching does.
+
+---
+
 ## Table of Contents
 
 - [Domain Mode Switching](#domain-mode-switching) — The meta-harness architecture
@@ -32,7 +48,7 @@ It's also the experimental playground for [xswarm](https://xswarm.ai) coding age
 
 ## Domain Mode Switching
 
-The central architectural insight: **domain expertise should load on demand, not pollute every conversation.** SEO knowledge about deprecated schema types is critical during site audits but pure waste during feature development. TDD agent pipelines are essential for coding but irrelevant during content planning. Each domain is a deep, self-contained world — the meta-harness keeps them separated.
+This harness solves the multiplier problem by keeping CLAUDE.md to **~15 lines** — a routing table, not an instruction manual. Claude classifies the activity, loads one mode file, and gets deep domain expertise for exactly that task. Everything else stays out of context.
 
 ```
                               CLAUDE.md (~15 lines)
@@ -57,9 +73,9 @@ The central architectural insight: **domain expertise should load on demand, not
      └────────────────────────────────────────────────────┘
 ```
 
-**How it works:** CLAUDE.md is ~15 lines — a routing table. Claude reads the user's prompt, classifies the activity, and reads one mode file (a single Read call). No hooks, no regex, no external scripts. Claude is the best classifier — it understands intent, not just keywords. Explicit `*dev`, `*seo`, etc. override classification.
+**How it works:** Claude reads the user's prompt, classifies the activity, and reads one mode file (a single Read call). No hooks, no regex, no external scripts. Claude is the best classifier — it understands intent, not just keywords. Explicit `*dev`, `*seo`, etc. override classification.
 
-**Why this matters:**
+**The numbers:**
 
 | Scenario | Context Loaded | Lines |
 |----------|---------------|-------|
@@ -71,9 +87,9 @@ The central architectural insight: **domain expertise should load on demand, not
 | SEO analysis | CLAUDE.md + modes/seo.md + refs | ~45 + ~40-60/ref |
 | SaaS planning | CLAUDE.md + mode + skill + refs | ~75 + ~60-140/phase |
 
-Most work pays **zero mode overhead**. Each mode can be arbitrarily rich — thousands of lines of domain knowledge — without taxing unrelated work. Adding a new domain is just a markdown file plus a row in the routing table. No code changes.
+Most work pays **zero mode overhead**. A typical harness with equivalent domain coverage would load 300-500 lines into every conversation. This one loads 15. That's a 20-30x reduction on the multiplier — and because agents amplify the cost, the real savings in a multi-agent pipeline are even larger.
 
-**The key principle:** modes don't just save tokens — they protect *attention*. A model reasoning about code architecture doesn't need SEO schema deprecation rules competing for attention. A model scoring SaaS viability doesn't need TDD enforcement instructions creating noise. Isolation isn't just efficient. It's *correct*.
+Each mode can be arbitrarily deep — the SaaS planner has 1,770 lines of domain knowledge across 18 files — without adding a single token to an SEO audit or a code review. Adding a new domain is just a markdown file plus a row in the routing table. No code changes.
 
 ### Principles-First Instructions
 
