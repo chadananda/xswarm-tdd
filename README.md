@@ -73,7 +73,7 @@ That's what domain switching does.
 - [seo](#seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
 - [plan-saas](#plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
 - [Skills](#skills--lazy-loaded-capabilities) — 21 on-demand capabilities
-- [The Compression Story](#the-compression-story) — 4,100 → 296 lines in 4 rounds
+- [The Compression Story](#the-compression-story) — 4,100 → 296 lines, rewritten by Claude itself
 - [Getting Started](#getting-started)
 - [Design Decisions](#design-decisions)
 - [Making It Your Own](#making-it-your-own)
@@ -125,18 +125,9 @@ Most work pays **zero domain overhead**. A typical harness with equivalent domai
 
 Each domain can be arbitrarily deep — the SaaS planner has 1,770 lines of domain knowledge across 18 files — without adding a single token to an SEO audit or a code review. Adding a new domain is just a markdown file plus a row in the routing table. No code changes.
 
-### Principles-First Instructions
+### Design Philosophy
 
-Every instruction across all domains follows one rule: **carry your own rationale.**
-
-```
-Bare:        Run tests after EVERY change.
-Principled:  Run tests after EVERY change — catches regressions before they stack.
-```
-
-Bare rules get pattern-matched and dropped under context pressure. Principled rules get *reasoned about* — the model defends the rule because it understands what's at stake. One sentence of rationale costs ~10 tokens and dramatically improves adherence in long sessions. This approach is informed by Anthropic's [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) guide: *specific enough to guide behavior effectively, yet flexible enough to avoid brittle hardcoding.*
-
-Two related disciplines underpin this:
+Two related disciplines underpin this harness:
 
 - **[Context Engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)** — curating the optimal set of tokens during inference.
 - **[Effective Harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)** — structuring scaffolding *around* agents for long-running work.
@@ -385,16 +376,33 @@ skills/
 
 ## The Compression Story
 
-Principles-first doesn't mean verbose. The harness grew organically to 4,100 lines, then was compressed to 296 — a 77% reduction — while *adding* principled rationale to every rule that lacked one. The insight: most of those 4,100 lines were templates, examples, and re-explanations of things Claude already knows. The principles themselves are cheap. Filler is expensive.
+This harness started as 4,100 lines of hand-written instructions. Claude compressed them to 296 — a 93% reduction — and the instructions got *better* at every step.
 
-| Round | What Changed | Always-Loaded | Agent Pool |
-|-------|-------------|---------------|------------|
-| **1: Architectural** | Merged critics, replaced 1,213-line planner with 180-line skill | 181 | 1,066 |
-| **2: Structural** | Removed model-known content, dropped templates | 68 | 464 |
-| **3: Terse + Principled** | `Rule — reason.` format, cut filler, added rationale | 45 | 251 |
-| **4: Dynamic Domains** | On-demand loading, ~15 line orchestrator | ~15 | 251 |
+Here's what actually happened: I asked Claude to rewrite its own instructions. Not summarize. Not truncate. *Rewrite* — applying a principle called **principles-first compression**, where every surviving rule must carry its own rationale:
 
-**The takeaway:** Agent instructions load on every invocation. A 500-line agent burns 2,000+ tokens before doing any work. But the answer isn't stripping reasons to save tokens — it's stripping everything *except* rules and reasons, and loading context *only when it's needed*. Principles are load-bearing structure. Templates and re-explanations are scaffolding you remove once the building stands.
+```
+Before:  Run tests after EVERY change.
+After:   Run tests after EVERY change — catches regressions before they stack.
+```
+
+The "before" version is a bare command. Under context pressure — long sessions, competing instructions, big codebases — Claude pattern-matches it and quietly drops it. The "after" version costs ~10 extra tokens but includes *why*. Claude defends reasoned rules because it understands what's at stake. That dash and its handful of words are the difference between a rule that holds and a rule that erodes.
+
+So the compression wasn't just mechanical shrinking. It was a four-round conversation between human intent and machine understanding:
+
+| Round | What Claude Did | Always-Loaded | Agent Pool |
+|-------|----------------|---------------|------------|
+| **1: Architectural** | Merged redundant agents (6→4), replaced 1,213-line planner with 180-line skill | 181 | 1,066 |
+| **2: Structural** | Identified and removed content Claude already knows (templates, JSDoc examples, README patterns) | 68 | 464 |
+| **3: Principled rewrite** | Rewrote every rule as `Rule — reason.` format, adding rationale where missing, cutting filler | 45 | 251 |
+| **4: Domain isolation** | Moved everything except the routing table out of always-loaded context | ~15 | 251 |
+
+Round 2 was the revelation. Over half the original 4,100 lines were *teaching Claude things it already knew* — commit message format, test file naming conventions, function documentation syntax. Claude identified them itself: "I know this natively. You're spending tokens to re-explain my training data." Every deleted template freed tokens for instructions that actually changed behavior.
+
+Round 3 was the art. Claude took 464 lines of terse, reason-free commands and rewrote them as 251 lines of principled rules — *shorter and more informative simultaneously.* The insight: a rule with its rationale is often more compact than a rule with examples, edge cases, and elaborate formatting. Principles compress better than procedures.
+
+Round 4 was the architecture shift. Even 251 brilliant lines are 251 lines too many for a conversation about writing a README. Domain switching moved everything into on-demand files, leaving a ~15-line routing table as the only always-loaded cost.
+
+**The meta-insight:** Claude is the best compressor of its own instructions, because it knows what it already knows. The human writes intent. The machine rewrites for its own architecture. The result is instructions that are simultaneously smaller, clearer, and more durable than what either could produce alone.
 
 ---
 
