@@ -73,7 +73,8 @@ That's what domain switching does.
 - [seo](#seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
 - [plan-saas](#plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
 - [Skills](#skills--lazy-loaded-capabilities) — 21 on-demand capabilities
-- [The Compression Story](#the-compression-story) — 4,100 → 296 lines, rewritten by Claude itself
+- [Principles-First Instructions](#principles-first-instructions) — Why rules with reasons outperform bare commands
+- [The Zen of Radical Compression](#the-zen-of-radical-compression) — 4,100 → 296 lines, rewritten by Claude itself
 - [Getting Started](#getting-started)
 - [Design Decisions](#design-decisions)
 - [Making It Your Own](#making-it-your-own)
@@ -374,24 +375,47 @@ skills/
 
 ---
 
-## The Compression Story
+## Principles-First Instructions
 
-This harness started as 4,100 lines of hand-written instructions. Claude compressed them to 296 — a 93% reduction — and the instructions got *better* at every step.
-
-Here's what actually happened: I asked Claude to rewrite its own instructions. Not summarize. Not truncate. *Rewrite* — applying a principle called **principles-first compression**, where every surviving rule must carry its own rationale:
+Every instruction in this harness carries its own rationale. Not as decoration — as *structural reinforcement.*
 
 ```
-Before:  Run tests after EVERY change.
-After:   Run tests after EVERY change — catches regressions before they stack.
+Bare rule:    Run tests after EVERY change.
+Principled:   Run tests after EVERY change — catches regressions before they stack.
 ```
 
-The "before" version is a bare command. Under context pressure — long sessions, competing instructions, big codebases — Claude pattern-matches it and quietly drops it. The "after" version costs ~10 extra tokens but includes *why*. That dash and its handful of words are the difference between a rule that holds and a rule that erodes.
+The bare version is a command. Under context pressure — long sessions, competing instructions, big codebases — Claude pattern-matches it and quietly drops it. The principled version costs ~10 extra tokens but includes *why*. That dash and its handful of words are the difference between a rule that holds and a rule that erodes.
 
-This isn't a trick we invented. It's how Anthropic trains Claude itself. Their [constitution](https://www.anthropic.com/news/claude-new-constitution) explicitly rejects rigid rules in favor of principled reasoning — an approach rooted in Aristotle's concept of *phronesis* (practical wisdom). The argument: rigid rules "can be applied poorly in unanticipated situations or when followed too rigidly." A model that understands *why* a rule exists can generalize to novel contexts. A model following bare commands can only pattern-match, and pattern-matching is brittle.
+This isn't a trick we invented. It's how Anthropic builds Claude itself.
 
-The same dynamic plays out in your CLAUDE.md. A bare rule like "use semantic HTML" survives until Claude encounters a situation where a `<div>` is genuinely simpler — then it faces a bare command with no context for when exceptions are warranted, and either breaks the rule silently or follows it into absurdity. A principled version — "use semantic HTML — improves accessibility and SEO crawlability" — gives Claude the *reason*, so it can navigate the edge case: "this is a purely decorative wrapper with no semantic meaning, so a `<div>` is correct here." The principle bends. The bare rule snaps.
+Their [constitution](https://www.anthropic.com/news/claude-new-constitution) explicitly rejects rigid rules in favor of principled reasoning — an approach rooted in Aristotle's concept of *phronesis* (practical wisdom). The argument: rigid rules "can be applied poorly in unanticipated situations or when followed too rigidly." A model that understands *why* a rule exists can generalize to novel contexts. A model following bare commands can only pattern-match, and pattern-matching is brittle.
 
-So the compression wasn't just mechanical shrinking. It was a four-round conversation between human intent and machine understanding:
+Watch this play out in practice. A bare rule like "use semantic HTML" survives until Claude encounters a situation where a `<div>` is genuinely simpler — then it faces a command with no context for when exceptions are warranted, and either breaks the rule silently or follows it into absurdity. A principled version — "use semantic HTML — improves accessibility and SEO crawlability" — gives Claude the *reason*, so it can navigate the edge case: "this is a purely decorative wrapper with no semantic meaning, so a `<div>` is correct here."
+
+**The principle bends. The bare rule snaps.**
+
+This has practical implications for how you write CLAUDE.md instructions:
+
+```
+Fragile:    Never use any in tests.
+Durable:    Never use any in tests — hides type errors that surface in production.
+
+Fragile:    Keep functions under 50 lines.
+Durable:    Keep functions under 50 lines — longer functions signal missing abstractions.
+
+Fragile:    Use JSON-LD for schema.
+Durable:    Use JSON-LD for schema — Google's explicit recommendation, cleanest separation.
+```
+
+Every rule without a reason is a rule waiting to be dropped. Every rule with a reason is a principle Claude will defend.
+
+---
+
+## The Zen of Radical Compression
+
+This harness started as 4,100 lines of hand-written instructions. It's now 296. Not by trimming — by asking Claude to *rewrite its own instructions.*
+
+Not summarize. Not truncate. Rewrite. Four rounds of a human saying "compress this" and a machine saying "you're wasting tokens teaching me things I already know."
 
 | Round | What Claude Did | Always-Loaded | Agent Pool |
 |-------|----------------|---------------|------------|
@@ -400,11 +424,11 @@ So the compression wasn't just mechanical shrinking. It was a four-round convers
 | **3: Principled rewrite** | Rewrote every rule as `Rule — reason.` format, adding rationale where missing, cutting filler | 45 | 251 |
 | **4: Domain isolation** | Moved everything except the routing table out of always-loaded context | ~15 | 251 |
 
-Round 2 was the revelation. Over half the original 4,100 lines were *teaching Claude things it already knew* — commit message format, test file naming conventions, function documentation syntax. Claude identified them itself: "I know this natively. You're spending tokens to re-explain my training data." Every deleted template freed tokens for instructions that actually changed behavior.
+**Round 2 was the revelation.** Over half the original 4,100 lines were *teaching Claude things it already knew* — commit message format, test file naming conventions, function documentation syntax. Claude identified them itself: "I know this natively. You're spending tokens to re-explain my training data." Every deleted template freed tokens for instructions that actually changed behavior.
 
-Round 3 was the art. Claude took 464 lines of terse, reason-free commands and rewrote them as 251 lines of principled rules — *shorter and more informative simultaneously.* The insight: a rule with its rationale is often more compact than a rule with examples, edge cases, and elaborate formatting. Principles compress better than procedures.
+**Round 3 was the art.** Claude took 464 lines of terse, reason-free commands and rewrote them as 251 lines of principled rules — *shorter and more informative simultaneously.* The insight: a rule with its rationale is often more compact than a rule with examples, edge cases, and elaborate formatting. Principles compress better than procedures.
 
-Round 4 was the architecture shift. Even 251 brilliant lines are 251 lines too many for a conversation about writing a README. Domain switching moved everything into on-demand files, leaving a ~15-line routing table as the only always-loaded cost.
+**Round 4 was the architecture shift.** Even 251 brilliant lines are 251 lines too many for a conversation about writing a README. Domain switching moved everything into on-demand files, leaving a ~15-line routing table as the only always-loaded cost.
 
 **The meta-insight:** Claude is the best compressor of its own instructions, because it knows what it already knows. The human writes intent. The machine rewrites for its own architecture. The result is instructions that are simultaneously smaller, clearer, and more durable than what either could produce alone.
 
