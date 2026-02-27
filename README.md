@@ -75,7 +75,7 @@ That's what domain switching does.
 - [Domain: review](#review--code-review) — Code review criteria, YAGNI, minimization
 - [Domain: seo](#seo--seo-analysis) — E-E-A-T, CWV, schema, GEO + reference files
 - [Domain: plan-saas](#plan-saas--saas-project-planner) — 4-phase pipeline: validate → strategy → technical → marketing
-- [Domain: plan-api](#plan-api--api-product-planner) — 4-phase pipeline: validate → strategy → technical → 52-week developer GTM
+- [Domain: plan-api](#plan-api--api-product-planner) — 4-phase pipeline: validate → strategy → technical → 52-week marketing calendar
 - [Skills](#skills--lazy-loaded-capabilities) — 24 on-demand capabilities
 - [Principles-First Instructions](#principles-first-instructions) — Why rules with reasons outperform bare commands
 - [The Zen of Radical Compression](#the-zen-of-radical-compression) — 4,100 → 296 lines, rewritten by Claude itself
@@ -404,7 +404,7 @@ skills/plan-api/                         # 18 files, ~2,000 lines total
 │   ├── plan-validate-api.md             # Phase 1 API viability interview + scoring
 │   ├── plan-strategy-api.md             # Phase 2 developer personas + positioning + pricing
 │   ├── plan-technical-api.md            # Phase 3 OpenAPI + gateway + SDKs + wrappers
-│   └── plan-marketing-api.md            # Phase 4 52-week GTM + video + podcast
+│   └── plan-marketing-api.md            # Phase 4 52-week marketing calendar + video + podcast
 ├── references/                          # 9 domain knowledge files
 │   ├── api-viability-scoring.md         # API-specific 5-factor scoring rubric
 │   ├── developer-personas.md            # Developer persona model + evaluation behavior
@@ -435,7 +435,7 @@ skills/
 ├── [Development Workflow]
 │   ├── plan/                    # Requirements + task decomposition
 │   ├── plan-saas/               # SaaS idea → launch-ready (4-phase pipeline)
-│   ├── plan-api/                # API product → developer GTM (4-phase pipeline)
+│   ├── plan-api/                # API product → 52-week marketing calendar (4-phase pipeline)
 │   ├── bdd-playwright/          # Gherkin + ARIA locators + axe-core
 │   ├── systematic-debugging/    # 4-phase root cause analysis
 │   ├── using-git-worktrees/     # Parallel branch isolation

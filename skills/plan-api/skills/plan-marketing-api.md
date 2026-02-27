@@ -436,4 +436,4 @@ This is the most comprehensive deliverable of the four phases. Fill every sectio
 
 No placeholder text. No "e.g." that isn't filled in. Every table must be populated with real data from research.
 
-Confirm completion: "api-marketing-prd.md written. All four phases complete. Your API product plan is ready — viability assessed, developer strategy defined, technical spec written, and 52-week GTM calendar built."
+Confirm completion: "api-marketing-prd.md written. All four phases complete. Your API product plan is ready — viability assessed, developer strategy defined, technical spec written, and 52-week marketing calendar built."
