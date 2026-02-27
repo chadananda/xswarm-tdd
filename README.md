@@ -1,8 +1,6 @@
+# Domain Mode Auto-Switching Meta Harness for Claude Code
+
 ![Claude Harness](assets/header.png)
-
-# claude-harness
-
-### Domain Mode Auto-Switching Meta Harness for Claude Code
 
 > *"The smallest set of high-signal tokens that maximize the likelihood of some desired outcome."*
 > — Anthropic, [Effective Context Engineering for AI Agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
