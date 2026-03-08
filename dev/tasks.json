@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "domain": "dev",
+    "source": "domains/dev.md",
+    "generated": "2026-03-07",
+    "description": "Enforceable steps extracted from the dev domain handler"
+  },
+  "tasks": [
+    {
+      "id": "tdd-red",
+      "phase": "tdd",
+      "spec": "Write a failing test that proves the requirement exists before any implementation.",
+      "status": "fail",
+      "verify_cmd": "grep -rl 'describe\\|it(\\|test(' tests/ 2>/dev/null | head -1 && echo PASS || echo FAIL"
+    },
+    {
+      "id": "tdd-green",
+      "phase": "tdd",
+      "spec": "Implement the minimum code to make the failing test pass.",
+      "status": "fail",
+      "verify_cmd": "npm test 2>&1 | tail -3"
+    },
+    {
+      "id": "tdd-refactor",
+      "phase": "tdd",
+      "spec": "Refactor implementation while keeping all tests green.",
+      "status": "fail",
+      "verify_cmd": "npm test 2>&1 | tail -3"
+    },
+    {
+      "id": "pipeline-coder",
+      "phase": "pipeline",
+      "spec": "Coder agent completes TDD implementation with all tests passing.",
+      "status": "fail",
+      "verify_cmd": "npm test 2>&1 | grep -E 'pass|fail|error' | head -5"
+    },
+    {
+      "id": "pipeline-simplifier",
+      "phase": "pipeline",
+      "spec": "Code-simplifier agent minimizes code while preserving all functionality and passing tests.",
+      "status": "fail",
+      "verify_cmd": "npm test 2>&1 | tail -1"
+    },
+    {
+      "id": "pipeline-reviewer",
+      "phase": "pipeline",
+      "spec": "Reviewer agent checks for bugs, YAGNI violations, and code quality issues.",
+      "status": "fail",
+      "verify_cmd": "echo 'Review completed' && npm test 2>&1 | tail -1"
+    },
+    {
+      "id": "pipeline-tester",
+      "phase": "pipeline",
+      "spec": "Tester agent verifies unit tests and visual tests (TUI/web) all pass.",
+      "status": "fail",
+      "verify_cmd": "npm test 2>&1 | tail -3"
+    },
+    {
+      "id": "pipeline-doc",
+      "phase": "pipeline",
+      "spec": "Doc agent adds JSDoc annotations and updates README for changed components.",
+      "status": "fail",
+      "verify_cmd": "grep -rl '@param\\|@returns\\|@description' src/ 2>/dev/null | head -3 && echo PASS || echo FAIL"
+    },
+    {
+      "id": "ctx-blocks",
+      "phase": "quality",
+      "spec": "Every non-trivial source file has a :ctx block with :arch:, :why:, :deps:, :rules:, :edge: fields (max 6 lines).",
+      "status": "fail",
+      "verify_cmd": "grep -rl ':arch:\\|:why:\\|:deps:' src/ 2>/dev/null | head -5 && echo PASS || echo FAIL"
+    },
+    {
+      "id": "style-compliance",
+      "phase": "quality",
+      "spec": "Code follows dev style: no blank lines between statements (comments to separate), single-line ifs, functional chaining, modern ES6+, ternaries when readable.",
+      "status": "fail",
+      "verify_cmd": "npx eslint src/ --max-warnings=0 2>&1 | tail -5 || echo 'Manual style review required'"
+    },
+    {
+      "id": "yagni-check",
+      "phase": "quality",
+      "spec": "No single-use helpers (inline <10 lines), no premature abstractions (Rule of Three), single file until >500 lines.",
+      "status": "fail",
+      "verify_cmd": "wc -l src/**/*.{js,ts} 2>/dev/null | sort -rn | head -5 || echo 'No files to check'"
+    },
+    {
+      "id": "safety-tui",
+      "phase": "safety",
+      "spec": "TUI processes never run in main terminal — always via tmux or VHS.",
+      "status": "fail",
+      "verify_cmd": "echo 'TUI safety: manual verification required'"
+    },
+    {
+      "id": "safety-web",
+      "phase": "safety",
+      "spec": "Web verification uses Playwright MCP or webapp-testing skill for deterministic checks.",
+      "status": "fail",
+      "verify_cmd": "echo 'Web safety: manual verification required'"
+    }
+  ]
+}

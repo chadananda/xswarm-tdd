@@ -204,6 +204,40 @@ Every agent is hardwired to escalate the moment anything goes wrong. No fallback
 
 The `stuck` agent is the *only* agent allowed to ask you questions. It presents the problem clearly with options. You make a 5-second decision. Work resumes. Your role shifts from "unpaid QA" to "technical decision-maker."
 
+### Harness Enforcement — Hooks and Artifacts
+
+The dev domain doesn't just *describe* a workflow — it **enforces** it through artifacts and git hooks. Every dev-domain step is captured in a task file, and a pre-commit hook prevents shortcuts.
+
+**Artifacts:**
+
+| File | Purpose |
+|------|---------|
+| `dev/tasks.json` | 13 enforceable tasks across 4 phases, each with `status` and `verify_cmd` |
+| `dev/progress.md` | Running log — current phase, last completed task, blockers |
+| `dev/AGENTS.md` | Table of contents for harness files + 8-step session protocol |
+
+**The 4 phases** (13 tasks total):
+
+| Phase | Tasks | What's enforced |
+|-------|-------|-----------------|
+| **tdd** (3) | red, green, refactor | Failing test exists before implementation |
+| **pipeline** (5) | coder → simplifier → reviewer → tester → doc | Each pipeline stage completes in order |
+| **quality** (3) | ctx-blocks, style, YAGNI | File context blocks, style compliance, no over-engineering |
+| **safety** (2) | TUI, web | TUI via tmux/VHS, web via Playwright |
+
+**How enforcement works:**
+
+1. **On entry:** When the dev domain activates, `domains/dev.md` instructs Claude to read `dev/tasks.json` and print a status header showing the current phase and next failing task. This surfaces harness state automatically — no reliance on memory.
+
+2. **During work:** Agents follow the session protocol in `dev/AGENTS.md` — pick first failing task, implement it, run its `verify_cmd`, flip status to `pass`, log the result in `progress.md`.
+
+3. **On commit:** A git pre-commit hook (`.git/hooks/pre-commit`) runs `scripts/verify-harness.js`, which **rejects commits** where:
+   - A task was flipped from `fail` to `pass` without a non-empty `verify_cmd`
+   - `dev/progress.md` wasn't updated alongside `dev/tasks.json`
+   - The flipped task's ID doesn't appear in the staged `progress.md`
+
+The harness enforces the *what* (dev domain workflow steps). How many Claude Code Tasks or agent teams you spin up to work through those steps is a separate, per-project decision.
+
 ---
 
 ## plan — Project Planning

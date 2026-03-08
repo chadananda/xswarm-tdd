@@ -1,5 +1,12 @@
 # Domain: dev — Feature Development
 
+## Harness (auto-check on entry)
+Before executing any dev work, read `dev/tasks.json` and `dev/progress.md`. Print a status header:
+```
+[dev harness] Phase: {current_phase} | Next failing task: {first_fail_id} — {spec}
+```
+If all tasks show `"pass"`, print `[dev harness] All 13 tasks passing`. Follow the session protocol in `dev/AGENTS.md`.
+
 ## TDD
 Strict Red-Green-Refactor. Agents load @TDD.md. Never implement without failing test — proves requirement exists.
 
