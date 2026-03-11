@@ -1,4 +1,5 @@
 # Domain: dev — Feature Development
+Load @domains/writing-voice.md — applies to commits, PRs, comments, docs.
 
 ## Harness (auto-check on entry)
 Before executing any dev work, read `dev/tasks.json` and `dev/progress.md`. Print a status header:

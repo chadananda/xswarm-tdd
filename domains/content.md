@@ -1,4 +1,5 @@
 # Domain: content — Blog & Article Writing
+Load @domains/writing-voice.md — applies to all output.
 
 ## Structure
 H2 every 300-500 words — walls of text lose readers. Readability grade 8-12 — clear enough for generalists, substantial enough for experts. Sweet spot: 800-2500 words. Under 800 feels thin; over 2500, split into a series.

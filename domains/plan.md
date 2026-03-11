@@ -1,4 +1,5 @@
 # Domain: plan — Planning & Architecture
+Load @domains/writing-voice.md — applies to deliverable text.
 Use /plan skill for structured requirements gathering and task decomposition.
 Use `feature-dev:code-architect` for architecture design — analyzes existing patterns and provides implementation blueprints.
 Use `feature-dev:code-explorer` for deep codebase analysis before planning — traces execution paths, maps dependencies.

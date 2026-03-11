@@ -17,6 +17,9 @@ Optional structured workflows. Load ONLY when the request clearly fits a domain 
 Explicit *dev, *doc, *content, *plan, *review, *seo activate a domain. No command or no match = no domain loaded.
 Ad-hoc tasks, questions, file ops, OS help, brainstorming — just work directly. No domain needed.
 
+## Writing Voice
+When producing human-facing text, load domains/writing-voice.md. Domains that generate prose already reference it.
+
 ## Conventions
 - Root = config only — cluttered root signals disorganized project.
 - src/|lib/ code; tests/ tests; docs/ docs; scripts/ utils; tmp/ temp (gitignored)

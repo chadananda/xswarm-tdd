@@ -97,6 +97,7 @@ This harness solves the multiplier problem by keeping CLAUDE.md to **~15 lines**
               ▼
      ┌────────────────────────────────────────────────────┐
      │  domains/                                            │
+     │  ├── writing-voice.md ~15 lines (shared dependency)  │
      │  ├── dev.md          ~25 lines + 251 lines agents  │
      │  ├── plan.md         ~10 lines                     │
      │  ├── doc.md          ~10 lines                     │
@@ -127,6 +128,14 @@ This harness solves the multiplier problem by keeping CLAUDE.md to **~15 lines**
 Most work pays **zero domain overhead**. A typical harness with equivalent domain coverage would load 300-500 lines into every conversation. This one loads 15. That's a 20-30x reduction on the multiplier — and because agents amplify the cost, the real savings in a multi-agent pipeline are even larger.
 
 Each domain can be arbitrarily deep — the SaaS planner has 1,770 lines of domain knowledge across 18 files — without adding a single token to an SEO audit or a code review. Adding a new domain is just a markdown file plus a row in the routing table. No code changes.
+
+### Shared Dependencies — Writing Voice
+
+Not every file in `domains/` is a domain. `writing-voice.md` is a **shared dependency** — a compact style guide (~15 lines) that any domain producing human-facing text loads via `@domains/writing-voice.md`. Currently referenced by dev, plan, doc, and content.
+
+The rules are simple: concise and technical over polished, plain words over fancy synonyms, no generic AI phrases ("let's dive in", "in conclusion", "it's worth noting"), no corporate tone, varied sentence rhythm. Direct and slightly blunt is fine.
+
+Why a separate file instead of inline rules per domain? Same reason domains exist — write it once, load it where needed, change it in one place. CLAUDE.md also references it for ad-hoc writing outside any domain.
 
 ### Design Philosophy
 
