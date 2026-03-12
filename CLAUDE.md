@@ -28,3 +28,32 @@ When producing human-facing text, load domains/writing-voice.md. Domains that ge
 
 ## Autonomy
 Work autonomously until blocked on human decision. Never ask "should I proceed?" — shifts cognitive load for non-decisions. Invoke stuck agent when genuinely stuck — real ambiguity needs human judgment.
+
+### Never Go Idle With Work Remaining
+If there is unfinished work, keep working. Do not stop and wait for a prompt. The user should never need to say "progress?" to un-stall you — if that one word gets you moving again, you were never actually blocked.
+
+After completing any sub-task, immediately evaluate: is the overall goal done? If not, continue to the next step. The only valid reasons to stop are:
+1. The entire task is complete.
+2. You need a human decision (use stuck agent).
+3. You've hit a hard external blocker (CI, deploy, waiting on a service).
+
+"I finished this part" is not a stopping point — it's a transition to the next part.
+
+### Loop State File Convention
+Any skill run via `/loop` MUST maintain a state file at `tmp/{skill-name}-state.md` for continuity across ticks. Context compresses between ticks — without a state file, each tick starts blind.
+
+**Start of tick:** Read the state file. If `status: IN_PROGRESS`, resume that work — do not re-evaluate from scratch.
+**End of tick:** Write the state file with current status, what you're working on (specific enough to resume cold), and what comes next.
+
+```markdown
+# {Skill} State
+last_tick: [ISO timestamp]
+tick_number: [N]
+status: IN_PROGRESS | BLOCKED | IDLE
+current_task: [specific description of active work]
+current_task_detail: [files, line numbers, exact progress — enough to resume blind]
+blocked_reason: [if BLOCKED]
+completed_this_session: [list]
+next_priority: [what to do next if current_task finishes]
+project_dir: [absolute path]
+```
